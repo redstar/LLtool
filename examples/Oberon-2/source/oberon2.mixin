@@ -1,0 +1,579 @@
+void parseModule() {
+    consume(TokenKind.KW_MODULE);
+    consume(TokenKind.Ident);
+    consume(TokenKind.Semi);
+    if (tok.kind == TokenKind.KW_IMPORT) {
+        parseImportList();
+    }
+    parseDeclSeq();
+    if (tok.kind == TokenKind.KW_BEGIN) {
+        advance();
+        parseStatementSeq();
+    }
+    consume(TokenKind.KW_END);
+    consume(TokenKind.Ident);
+    consume(TokenKind.Period);
+}
+
+void parseImportList() {
+    consume(TokenKind.KW_IMPORT);
+    parseImport();
+    while (tok.kind == TokenKind.Comma) {
+        advance();
+        parseImport();
+    }
+    consume(TokenKind.Semi);
+}
+
+void parseImport() {
+     string aliasName; size_t aliasPos; 
+    if ( isAlias() ) {
+        expect(TokenKind.Ident);
+         aliasName = tok.val; aliasPos = tok.pos; 
+        advance();
+        consume(TokenKind.ColonEqual);
+    }
+    expect(TokenKind.Ident);
+     addImport(tok.pos, tok.val, aliasPos, aliasName); 
+    advance();
+}
+
+void parseDeclSeq() {
+    while (tok.kind.among(TokenKind.KW_CONST, TokenKind.KW_TYPE, TokenKind.KW_VAR)) {
+        if (tok.kind == TokenKind.KW_CONST) {
+            advance();
+            while (tok.kind == TokenKind.Ident) {
+                parseConstDecl();
+                consume(TokenKind.Semi);
+            }
+        }
+        else if (tok.kind == TokenKind.KW_TYPE) {
+            advance();
+            while (tok.kind == TokenKind.Ident) {
+                parseTypeDecl();
+                consume(TokenKind.Semi);
+            }
+        }
+        else if (tok.kind == TokenKind.KW_VAR) {
+            advance();
+            while (tok.kind == TokenKind.Ident) {
+                parseVarDecl();
+                consume(TokenKind.Semi);
+            }
+        }
+    }
+    while (tok.kind == TokenKind.KW_PROCEDURE) {
+        if ( isProcDecl() ) {
+            parseProcDecl();
+            consume(TokenKind.Semi);
+        }
+        else if (tok.kind == TokenKind.KW_PROCEDURE) {
+            parseForwardDecl();
+            consume(TokenKind.Semi);
+        }
+    }
+}
+
+void parseConstDecl() {
+    parseIdentDef();
+    consume(TokenKind.Equal);
+    parseConstExpr();
+}
+
+void parseTypeDecl() {
+    parseIdentDef();
+    consume(TokenKind.Equal);
+    parseType();
+}
+
+void parseVarDecl() {
+    parseIdentList();
+    consume(TokenKind.Colon);
+    parseType();
+}
+
+void parseProcDecl() {
+    consume(TokenKind.KW_PROCEDURE);
+    if (tok.kind == TokenKind.LeftParenthesis) {
+        parseReceiver();
+    }
+    parseIdentDef();
+    if (tok.kind == TokenKind.LeftParenthesis) {
+        parseFormalPars();
+    }
+    consume(TokenKind.Semi);
+    parseDeclSeq();
+    if (tok.kind == TokenKind.KW_BEGIN) {
+        advance();
+        parseStatementSeq();
+    }
+    consume(TokenKind.KW_END);
+    consume(TokenKind.Ident);
+}
+
+void parseForwardDecl() {
+    consume(TokenKind.KW_PROCEDURE);
+    consume(TokenKind.Caret);
+    if (tok.kind == TokenKind.LeftParenthesis) {
+        parseReceiver();
+    }
+    parseIdentDef();
+    if (tok.kind == TokenKind.LeftParenthesis) {
+        parseFormalPars();
+    }
+}
+
+void parseFormalPars() {
+    consume(TokenKind.LeftParenthesis);
+    if (tok.kind.among(TokenKind.KW_VAR, TokenKind.Ident)) {
+        parseFPSection();
+        while (tok.kind == TokenKind.Semi) {
+            advance();
+            parseFPSection();
+        }
+    }
+    consume(TokenKind.RightParenthesis);
+    if (tok.kind == TokenKind.Colon) {
+        advance();
+        parseQualident();
+    }
+}
+
+void parseFPSection() {
+    if (tok.kind == TokenKind.KW_VAR) {
+        advance();
+    }
+    consume(TokenKind.Ident);
+    while (tok.kind == TokenKind.Comma) {
+        advance();
+        consume(TokenKind.Ident);
+    }
+    consume(TokenKind.Colon);
+    parseType();
+}
+
+void parseReceiver() {
+    consume(TokenKind.LeftParenthesis);
+    if (tok.kind == TokenKind.KW_VAR) {
+        advance();
+    }
+    consume(TokenKind.Ident);
+    consume(TokenKind.Colon);
+    consume(TokenKind.Ident);
+    consume(TokenKind.RightParenthesis);
+}
+
+void parseType() {
+    if (tok.kind == TokenKind.Ident) {
+        parseQualident();
+    }
+    else if (tok.kind == TokenKind.KW_ARRAY) {
+        advance();
+        if (tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Plus, TokenKind.Minus, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String)) {
+            parseConstExpr();
+            while (tok.kind == TokenKind.Comma) {
+                advance();
+                parseConstExpr();
+            }
+        }
+        consume(TokenKind.KW_OF);
+        parseType();
+    }
+    else if (tok.kind == TokenKind.KW_RECORD) {
+        advance();
+        if (tok.kind == TokenKind.LeftParenthesis) {
+            advance();
+            parseQualident();
+            consume(TokenKind.RightParenthesis);
+        }
+        parseFieldList();
+        while (tok.kind == TokenKind.Semi) {
+            advance();
+            parseFieldList();
+        }
+        consume(TokenKind.KW_END);
+    }
+    else if (tok.kind == TokenKind.KW_POINTER) {
+        advance();
+        consume(TokenKind.KW_TO);
+        parseType();
+    }
+    else if (tok.kind == TokenKind.KW_PROCEDURE) {
+        advance();
+        if (tok.kind == TokenKind.LeftParenthesis) {
+            parseFormalPars();
+        }
+    }
+}
+
+void parseFieldList() {
+    if (tok.kind == TokenKind.Ident) {
+        parseIdentList();
+        consume(TokenKind.Colon);
+        parseType();
+    }
+}
+
+void parseStatementSeq() {
+    parseStatement();
+    while (tok.kind == TokenKind.Semi) {
+        advance();
+        parseStatement();
+    }
+}
+
+void parseStatement() {
+    if (tok.kind.among(TokenKind.KW_CASE, TokenKind.KW_EXIT, TokenKind.KW_FOR, TokenKind.KW_IF, TokenKind.KW_LOOP, TokenKind.KW_REPEAT, TokenKind.KW_RETURN, TokenKind.KW_WHILE, TokenKind.KW_WITH, TokenKind.Ident)) {
+        if (tok.kind == TokenKind.Ident) {
+            parseDesignator();
+            if (tok.kind == TokenKind.ColonEqual) {
+                advance();
+                parseExpr();
+            }
+            else if (tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Semi, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_UNTIL, TokenKind.Pipe)) {
+                if (tok.kind == TokenKind.LeftParenthesis) {
+                    advance();
+                    if (tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Plus, TokenKind.Minus, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String)) {
+                        parseExprList();
+                    }
+                    consume(TokenKind.RightParenthesis);
+                }
+            }
+        }
+        else if (tok.kind == TokenKind.KW_IF) {
+            advance();
+            parseExpr();
+            consume(TokenKind.KW_THEN);
+            parseStatementSeq();
+            if (tok.kind == TokenKind.KW_ELSIF) {
+                advance();
+                parseExpr();
+                consume(TokenKind.KW_THEN);
+                parseStatementSeq();
+            }
+            if (tok.kind == TokenKind.KW_ELSE) {
+                advance();
+                parseStatementSeq();
+            }
+            consume(TokenKind.KW_END);
+        }
+        else if (tok.kind == TokenKind.KW_CASE) {
+            advance();
+            parseExpr();
+            consume(TokenKind.KW_OF);
+            parseCase();
+            while (tok.kind == TokenKind.Pipe) {
+                advance();
+                parseCase();
+            }
+            if (tok.kind == TokenKind.KW_ELSE) {
+                advance();
+                parseStatementSeq();
+            }
+            consume(TokenKind.KW_END);
+        }
+        else if (tok.kind == TokenKind.KW_WHILE) {
+            advance();
+            parseExpr();
+            consume(TokenKind.KW_DO);
+            parseStatementSeq();
+            consume(TokenKind.KW_END);
+        }
+        else if (tok.kind == TokenKind.KW_REPEAT) {
+            advance();
+            parseStatementSeq();
+            consume(TokenKind.KW_UNTIL);
+            parseExpr();
+        }
+        else if (tok.kind == TokenKind.KW_FOR) {
+            advance();
+            consume(TokenKind.Ident);
+            consume(TokenKind.ColonEqual);
+            parseExpr();
+            consume(TokenKind.KW_TO);
+            parseExpr();
+            if (tok.kind == TokenKind.KW_BY) {
+                advance();
+                parseConstExpr();
+            }
+            consume(TokenKind.KW_DO);
+            parseStatementSeq();
+            consume(TokenKind.KW_END);
+        }
+        else if (tok.kind == TokenKind.KW_LOOP) {
+            advance();
+            parseStatementSeq();
+            consume(TokenKind.KW_END);
+        }
+        else if (tok.kind == TokenKind.KW_WITH) {
+            advance();
+            parseGuard();
+            consume(TokenKind.KW_DO);
+            parseStatementSeq();
+            while (tok.kind == TokenKind.Pipe) {
+                advance();
+                parseGuard();
+                consume(TokenKind.KW_DO);
+                parseStatementSeq();
+            }
+            if (tok.kind == TokenKind.KW_ELSE) {
+                advance();
+                parseStatementSeq();
+            }
+            consume(TokenKind.KW_END);
+        }
+        else if (tok.kind == TokenKind.KW_EXIT) {
+            advance();
+        }
+        else if (tok.kind == TokenKind.KW_RETURN) {
+            advance();
+            if (tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Plus, TokenKind.Minus, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String)) {
+                parseExpr();
+            }
+        }
+    }
+}
+
+void parseCase() {
+    if (tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Plus, TokenKind.Minus, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String)) {
+        parseCaseLabels();
+        while (tok.kind == TokenKind.Comma) {
+            advance();
+            parseCaseLabels();
+        }
+        consume(TokenKind.Colon);
+        parseStatementSeq();
+    }
+}
+
+void parseCaseLabels() {
+    parseConstExpr();
+    if (tok.kind == TokenKind.Ellipsis) {
+        advance();
+        parseConstExpr();
+    }
+}
+
+void parseGuard() {
+    parseQualident();
+    consume(TokenKind.Colon);
+    parseQualident();
+}
+
+void parseConstExpr() {
+    parseExpr();
+}
+
+void parseExpr() {
+    parseSimpleExpr();
+    if (tok.kind.among(TokenKind.Hash, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_IN, TokenKind.KW_IS)) {
+        parseRelation();
+        parseSimpleExpr();
+    }
+}
+
+void parseSimpleExpr() {
+    if (tok.kind.among(TokenKind.Plus, TokenKind.Minus)) {
+        if (tok.kind == TokenKind.Plus) {
+            advance();
+        }
+        else if (tok.kind == TokenKind.Minus) {
+            advance();
+        }
+    }
+    parseTerm();
+    while (tok.kind.among(TokenKind.Plus, TokenKind.Minus, TokenKind.KW_OR)) {
+        parseAddOp();
+        parseTerm();
+    }
+}
+
+void parseTerm() {
+    parseFactor();
+    while (tok.kind.among(TokenKind.Amp, TokenKind.Star, TokenKind.Slash, TokenKind.KW_DIV, TokenKind.KW_MOD)) {
+        parseMulOp();
+        parseFactor();
+    }
+}
+
+void parseFactor() {
+    if (tok.kind == TokenKind.Ident) {
+        parseDesignator();
+        if (tok.kind == TokenKind.LeftParenthesis) {
+            advance();
+            if (tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Plus, TokenKind.Minus, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String)) {
+                parseExprList();
+            }
+            consume(TokenKind.RightParenthesis);
+        }
+    }
+    else if (tok.kind.among(TokenKind.Integer, TokenKind.Real)) {
+        parseNumber();
+    }
+    else if (tok.kind == TokenKind.Character) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.String) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.KW_NIL) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.LeftBrace) {
+        parseSet();
+    }
+    else if (tok.kind == TokenKind.LeftParenthesis) {
+        advance();
+        parseExpr();
+        consume(TokenKind.RightParenthesis);
+    }
+    else if (tok.kind == TokenKind.Tilde) {
+        advance();
+        parseFactor();
+    }
+}
+
+void parseSet() {
+    consume(TokenKind.LeftBrace);
+    if (tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Plus, TokenKind.Minus, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String)) {
+        parseElement();
+        while (tok.kind == TokenKind.Comma) {
+            advance();
+            parseElement();
+        }
+    }
+    consume(TokenKind.RightBrace);
+}
+
+void parseElement() {
+    parseExpr();
+    if (tok.kind == TokenKind.Ellipsis) {
+        advance();
+        parseExpr();
+    }
+}
+
+void parseRelation() {
+    if (tok.kind == TokenKind.Equal) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.Hash) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.Less) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.LessEqual) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.Greater) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.GreaterEqual) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.KW_IN) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.KW_IS) {
+        advance();
+    }
+}
+
+void parseAddOp() {
+    if (tok.kind == TokenKind.Plus) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.Minus) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.KW_OR) {
+        advance();
+    }
+}
+
+void parseMulOp() {
+    if (tok.kind == TokenKind.Star) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.Slash) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.KW_DIV) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.KW_MOD) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.Amp) {
+        advance();
+    }
+}
+
+void parseDesignator() {
+    parseQualident();
+    while ( !isProcCall() ) {
+        if (tok.kind == TokenKind.Period) {
+            advance();
+            consume(TokenKind.Ident);
+        }
+        else if (tok.kind == TokenKind.LeftSquare) {
+            advance();
+            parseExprList();
+            consume(TokenKind.RightSquare);
+        }
+        else if (tok.kind == TokenKind.Caret) {
+            advance();
+        }
+        else if (tok.kind == TokenKind.LeftParenthesis) {
+            advance();
+            parseQualident();
+            consume(TokenKind.RightParenthesis);
+        }
+    }
+}
+
+void parseExprList() {
+    parseExpr();
+    while (tok.kind == TokenKind.Comma) {
+        advance();
+        parseExpr();
+    }
+}
+
+void parseIdentList() {
+    parseIdentDef();
+    while (tok.kind == TokenKind.Comma) {
+        advance();
+        parseIdentDef();
+    }
+}
+
+void parseQualident() {
+    if ( isModule() ) {
+        consume(TokenKind.Ident);
+        consume(TokenKind.Period);
+    }
+    consume(TokenKind.Ident);
+}
+
+void parseIdentDef() {
+    consume(TokenKind.Ident);
+    if (tok.kind.among(TokenKind.Star, TokenKind.Minus)) {
+        if (tok.kind == TokenKind.Star) {
+            advance();
+        }
+        else if (tok.kind == TokenKind.Minus) {
+            advance();
+        }
+    }
+}
+
+void parseNumber() {
+    if (tok.kind == TokenKind.Integer) {
+        advance();
+    }
+    else if (tok.kind == TokenKind.Real) {
+        advance();
+    }
+}

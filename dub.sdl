@@ -1,0 +1,7 @@
+name "lltool"
+description "A tool to analyze EBNF grammars"
+targetName "LLtool"
+authors "Kai Nacke"
+copyright "Copyright © 2019, Kai Nacke"
+license "BSD 3-clause"
+stringImportPaths "source/"

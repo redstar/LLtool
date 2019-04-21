@@ -1,0 +1,8 @@
+name "oberon2"
+description "A sample parser demonstrating LLtool"
+authors "Kai Nacke"
+copyright "Copyright © 2019, Kai Nacke"
+license "BSD 3-clause"
+stringImportPaths "source/"
+preBuildCommands "..\\..\\LLtool source/oberon2.g" platform="windows"
+preBuildCommands "../../LLtool source/oberon2.g" platform="posix"
