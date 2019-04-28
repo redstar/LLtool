@@ -167,16 +167,17 @@ struct GrammarBuilder
         }
     }
 
-    private void add(Node node)
+    private Node add(const NodeType type, const size_t position)
     {
+        auto node = new Node(type, position);
         nodes ~= node;
+        return node;
     }
 
     Node nonterminal(const size_t position, string name)
     {
-        auto node = new Node(NodeType.Nonterminal, position);
+        auto node = add(NodeType.Nonterminal, position);
         node.name = name;
-        add(node);
         return node;
     }
 
@@ -189,10 +190,9 @@ struct GrammarBuilder
         }
         else
         {
-            auto node = new Node(NodeType.Terminal, position);
+            auto node = add(NodeType.Terminal, position);
             node.name = name;
             node.externalName = externalName;
-            add(node);
             terminals[name] = node;
             return node;
         }
@@ -200,7 +200,7 @@ struct GrammarBuilder
 
     Node symbol(const size_t position, string name, bool isTerminal = false)
     {
-        auto node = new Node(NodeType.Symbol, position);
+        auto node = add(NodeType.Symbol, position);
         node.name = name;
         if (isTerminal)
         {
@@ -209,37 +209,33 @@ struct GrammarBuilder
             else
                 node.inner = terminal(position, name);
         }
-        add(node);
         return node;
     }
 
     Node code(const size_t position, string code)
     {
-        auto node = new Node(NodeType.Code, position);
+        auto node = add(NodeType.Code, position);
         node.code = code;
-        add(node);
         return node;
     }
 
     Node sequence(const size_t position)
     {
-        auto node = new Node(NodeType.Sequence, position);
-        add(node);
+        auto node = add(NodeType.Sequence, position);
         return node;
     }
 
     Node group(const size_t position, Cardinality cardinality)
     {
-        auto node = new Node(NodeType.Group, position, cardinality);
-        add(node);
+        auto node = add(NodeType.Group, position);
+        node.cardinality = cardinality;
         return node;
     }
 
     Node alternative(const size_t position, Node seq)
     {
         assert(seq.type == NodeType.Sequence);
-        auto node = new Node(NodeType.Alternative, position);
-        add(node);
+        auto node = add(NodeType.Alternative, position);
         node.link = seq;
         return node;
     }
