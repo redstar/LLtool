@@ -78,8 +78,8 @@ void main(string[] args)
 		if (hasErrors)
 			return ;
 		auto sink = Sink(outputFilename);
+		scope(exit) sink.close();
 		generate(sink, grammar);
-		sink.close();
 	}
 	catch (FileException e)
 	{
