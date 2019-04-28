@@ -1,3 +1,4 @@
+// Written in the D programming language.
 /**
  * Main module of the application.
  *
@@ -7,8 +8,6 @@
  *
  * Authors: Kai Nacke
  */
-
-import std.stdio;
 
 import lexer;
 import parser;
@@ -21,7 +20,7 @@ import verify;
 import std.file : write, readText, FileException;
 import std.path : setExtension;
 import std.range : isOutputRange;
-import std.stdio : File;
+import std.stdio : File, stdout;
 import std.traits : isSomeString;
 
 struct Sink
@@ -69,14 +68,20 @@ void main(string[] args)
 		}
 		if (hasErrors)
 			return ;
+
 		calculateReachable(grammar);
 		calculateDerivesEpsilon(grammar);
 		calculateProductive(grammar);
+		checkGrammar(content, grammar);
+		if (hasErrors)
+			return ;
+
 		calculateFirstSets(grammar);
 		calculateFollowSets(grammar);
 		checkLL(content, grammar);
 		if (hasErrors)
 			return ;
+
 		auto sink = Sink(outputFilename);
 		scope(exit) sink.close();
 		generate(sink, grammar);

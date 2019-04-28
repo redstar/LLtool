@@ -14,7 +14,31 @@ import diagnostics;
 import grammar;
 import std.algorithm : among, count, filter, setIntersection;
 
+/**
+ * Check if grammar contains only useful symbols.
+ *
+ * Params:
+ *      buffer = content of grammar file (for error messages)
+ *      grammar = grammar to check
+ */
+void checkGrammar(const(char)[] buffer, Grammar grammar)
+{
+	foreach (node; grammar.nonterminals)
+    {
+        if (!node.isReachable)
+            error(buffer, node.pos, "Nonterminal %s is not reachable", node.name);
+        if (!node.isProductive)
+            error(buffer, node.pos, "Nonterminal %s is not productive", node.name);
+    }
+}
 
+/**
+ * Check if LL(1) conflicts exist in the grammar.
+ *
+ * Params:
+ *      buffer = content of grammar file (for error messages)
+ *      grammar = grammar to check
+ */
 void checkLL(const(char)[] buffer, Grammar grammar)
 {
     static bool isResolver(Node n)
