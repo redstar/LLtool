@@ -97,7 +97,7 @@ conflict:
             {
                 b.clear;
                 b.insert(nj.firstSet[]);
-                if (ni.derivesEpsilon)
+                if (nj.derivesEpsilon)
                     b.insert(nj.followSet[]);
                 if (setIntersection(a[], b[]).count > 0)
                 {
