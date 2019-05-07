@@ -64,7 +64,7 @@ void main(string[] args)
 		auto grammar = parser.parse();
 		if (debugging)
 		{
-			write(inputFilename.setExtension("dor"), grammar.toGraphviz);
+			write(inputFilename.setExtension("dot"), grammar.toGraphviz);
 		}
 		if (hasErrors)
 			return ;
