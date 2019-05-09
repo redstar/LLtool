@@ -99,9 +99,13 @@ struct GrammarBuilder
     Grammar finalize()
     {
         // nodes[2].name = nodes[5].name;
+        if (hasErrors) // Bail out if there was a syntax error
+            return Grammar();
         auto eoiTerminal = terminal(0, eoiName.length ? eoiName : "_eoi");
         eoiTerminal.isReachable = true;
         resolve();
+        if (hasErrors) // Bail out if there was a semantic error
+            return Grammar();
         foreach (n; nodes)
             n.check;
         Grammar g = { nodes: nodes, startSymbol: findStartSymbol(), eoiTerminal: eoiTerminal };

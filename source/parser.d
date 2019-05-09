@@ -72,10 +72,7 @@ public:
     {
         tok = lexer.front;
         parseLltool();
-        Grammar grammar;
-        if (!hasErrors)
-            grammar = builder.finalize();
-        return grammar;
+        return builder.finalize();
     }
 
 private:
