@@ -274,47 +274,24 @@ unittest
 			" Act: " ~ to!string(nt.isProductive));
 }
 
-/*
-TODO Define predicate for GFAStrategy
-interface IGFAStrategy {
-
-	TerminalSet startValue(Nonterminal a);
-
-	// TODO Turn into InputRange
-	NonterminalSet relation(Nonterminal a);
-
-	void assign(Nonterminal a, TerminalSet result);
-
-	TerminalSet value(Nonterminal a);
-}
-*/
-
-// GFA = Grammar Flow Analysis
 /// Grammar Flow Analysis algorithm.
 ///
 /// See Wilhelm, Maurer. p. 309
 /// This is Tarjan's strongly connected components algorithm
-struct GFAAlgorithm(alias startValue, alias relation, string prop)
+public void computeSetValuedFunc(alias startValue, alias relation, string prop, R)(R range) if (isInputRange!R)
 {
-	private static immutable int INFINITY = int.max;
+	immutable int INFINITY = int.max;
 
-	private Array!Node stack;
-	private size_t[Node] numbers;
+	alias NodeType = ElementType!R;
+	Array!NodeType stack;
+	size_t[NodeType] numbers;
 
-	public void run(R)(R range) if (isInputRange!R && is(ElementType!R == Node))
-	{
-		foreach (v; range) {
-			if (v !in numbers) {
-				dfs(v);
-			}
-		}
-	}
-
-	protected void dfs(Node a)
+	void dfs(NodeType a)
 	{
 		stack.insertBack(a);
 		const d = stack.length;
 		numbers[a] = d;
+
 
 		__traits(getMember, a, prop) = startValue(a);
 		foreach (b; relation(a)) {
@@ -327,7 +304,7 @@ struct GFAAlgorithm(alias startValue, alias relation, string prop)
 
 		if (numbers[a] == d) {
 			while (true) {
-				Node t = stack.back;
+				auto t = stack.back;
 				numbers[t] = INFINITY;
 				__traits(getMember, t, prop) = __traits(getMember, a, prop);
 				stack.removeBack;
@@ -336,6 +313,70 @@ struct GFAAlgorithm(alias startValue, alias relation, string prop)
 			}
 		}
 	}
+
+	foreach (v; range) {
+		if (v !in numbers) {
+			dfs(v);
+		}
+	}
+}
+
+unittest
+{
+	import std.algorithm.comparison : equal;
+	import std.container.rbtree;
+
+	alias StringSet = RedBlackTree!(string, "a < b", false);
+
+	struct SimpleNode
+	{
+		string n;
+		StringSet result;
+		SimpleNode*[] next;
+	}
+
+	auto a = new SimpleNode("A");
+	auto b = new SimpleNode("B");
+	auto c = new SimpleNode("C");
+
+    a.next ~= b;
+    b.next ~= c;
+    c.next ~= a;
+
+	auto all = [ a, b, c ];
+
+	auto start(SimpleNode *a)
+	{
+		return new StringSet(a.n);
+	}
+
+	auto relation(SimpleNode *b)
+	{
+		return b.next;
+	}
+
+	computeSetValuedFunc!(start, relation, "result")(all);
+
+	assert(equal(a.result[], [ "A", "B", "C" ]));
+	assert(equal(b.result[], [ "A", "B", "C" ]));
+	assert(equal(c.result[], [ "A", "B", "C" ]));
+
+	c.next.length = 0;
+
+	computeSetValuedFunc!(start, relation, "result")(all);
+
+	assert(equal(a.result[], [ "A", "B", "C" ]));
+	assert(equal(b.result[], [ "B", "C" ]));
+	assert(equal(c.result[], [ "C" ]));
+
+	a.next.length = 0;
+	b.next.length = 0;
+
+	computeSetValuedFunc!(start, relation, "result")(all);
+
+	assert(equal(a.result[], [ "A" ]));
+	assert(equal(b.result[], [ "B" ]));
+	assert(equal(c.result[], [ "C" ]));
 }
 
 /**
@@ -409,7 +450,7 @@ void calculateFirstSets(Grammar grammar)
 	}
 
 	auto noderange = filter!(n => n.type != NodeType.Code)(grammar.nodes);
-	GFAAlgorithm!(startValue, relation, "firstSet")().run(noderange);
+	computeSetValuedFunc!(startValue, relation, "firstSet")(noderange);
 	version(unittest) checkFirstSets(grammar);
 }
 
@@ -631,7 +672,7 @@ void calculateFollowSets(Grammar grammar)
 	}
 
 	auto noderange = filter!(n => n.type.among!(NodeType.Alternative, NodeType.Group, NodeType.Sequence, NodeType.Symbol))(grammar.nodes);
-	GFAAlgorithm!(startValue, relation, "followSet")().run(noderange);
+	computeSetValuedFunc!(startValue, relation, "followSet")(noderange);
 	version(unittest) checkFollowSets(grammar);
 }
 
