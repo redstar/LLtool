@@ -335,16 +335,6 @@ unittest
 		SimpleNode*[] next;
 	}
 
-	auto a = new SimpleNode("A");
-	auto b = new SimpleNode("B");
-	auto c = new SimpleNode("C");
-
-    a.next ~= b;
-    b.next ~= c;
-    c.next ~= a;
-
-	auto all = [ a, b, c ];
-
 	auto start(SimpleNode *a)
 	{
 		return new StringSet(a.n);
@@ -355,12 +345,30 @@ unittest
 		return b.next;
 	}
 
+	auto a = new SimpleNode("A");
+	auto b = new SimpleNode("B");
+	auto c = new SimpleNode("C");
+
+    /*
+	 *   A ----> B
+	 *   ^       |
+	 *   +---C---+
+	 */
+    a.next ~= b;
+    b.next ~= c;
+    c.next ~= a;
+
+	auto all = [ a, b, c ];
+
 	computeSetValuedFunc!(start, relation, "result")(all);
 
 	assert(equal(a.result[], [ "A", "B", "C" ]));
 	assert(equal(b.result[], [ "A", "B", "C" ]));
 	assert(equal(c.result[], [ "A", "B", "C" ]));
 
+    /*
+	 *   A ----> B ----> C
+	 */
 	c.next.length = 0;
 
 	computeSetValuedFunc!(start, relation, "result")(all);
@@ -377,6 +385,38 @@ unittest
 	assert(equal(a.result[], [ "A" ]));
 	assert(equal(b.result[], [ "B" ]));
 	assert(equal(c.result[], [ "C" ]));
+
+	auto d = new SimpleNode("D");
+	auto e = new SimpleNode("E");
+
+    /*
+	 *   D ----> A ----> B ----> E
+	 *           ^       |
+	 *           +---C---+
+	 */
+    a.next ~= b;
+    b.next ~= c;
+    c.next ~= a;
+	d.next ~= a;
+	b.next ~= e;
+
+	all = [ e, d, c, b, a ];
+	computeSetValuedFunc!(start, relation, "result")(all);
+
+	assert(equal(a.result[], [ "A", "B", "C", "E" ]));
+	assert(equal(b.result[], [ "A", "B", "C", "E" ]));
+	assert(equal(c.result[], [ "A", "B", "C", "E" ]));
+	assert(equal(d.result[], [ "A", "B", "C", "D", "E" ]));
+	assert(equal(e.result[], [ "E" ]));
+
+	all = [ e, a, c, b, d ];
+	computeSetValuedFunc!(start, relation, "result")(all);
+
+	assert(equal(a.result[], [ "A", "B", "C", "E" ]));
+	assert(equal(b.result[], [ "A", "B", "C", "E" ]));
+	assert(equal(c.result[], [ "A", "B", "C", "E" ]));
+	assert(equal(d.result[], [ "A", "B", "C", "D", "E" ]));
+	assert(equal(e.result[], [ "E" ]));
 }
 
 /**
