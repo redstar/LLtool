@@ -173,7 +173,7 @@ struct GrammarBuilder
 
     private Node add(const NodeType type, const size_t position)
     {
-        auto node = new Node(type, position);
+        auto node = new NodeStruct(type, position);
         nodes ~= node;
         return node;
     }
@@ -284,7 +284,9 @@ enum Cardinality
     ZeroOrMore
 }
 
-class Node
+alias Node = NodeStruct*;
+
+struct NodeStruct
 {
 public:
     const size_t pos;
@@ -347,7 +349,7 @@ public:
         this(type, pos, Cardinality.One);
     }
 
-    override string toString()
+    string toString()
     {
         import std.conv : to;
 
@@ -386,7 +388,7 @@ public:
                 assert(back !is null || next !is null, toString);
                 assert(link !is null, toString);
                 assert(link.type.among(NodeType.Sequence, NodeType.Alternative), toString);
-                assert(link.back == this, toString);
+                assert(link.back == &this, toString);
                 break;
             case NodeType.Alternative:
                 assert(back !is null, toString);
@@ -395,7 +397,7 @@ public:
                 foreach (n; NodeLinkRange(link))
                 {
                     assert(n.type == NodeType.Sequence, toString);
-                    assert(n.back == this, toString);
+                    assert(n.back == &this, toString);
                 }
                 break;
             case NodeType.Sequence:
