@@ -27,7 +27,8 @@ enum TokenKind : uint
     Argument,
     Code,
     Equal,
-    Period,
+    Colon,
+    Semi,
     Comma,
     Pipe,
     LeftParenthesis,
@@ -57,7 +58,8 @@ string displayName(TokenKind kind)
         case TokenKind.Argument: return "argument";
         case TokenKind.Code: return "code";
         case TokenKind.Equal: return "=";
-        case TokenKind.Period: return ".";
+        case TokenKind.Colon: return ":";
+        case TokenKind.Semi: return ";";
         case TokenKind.Comma: return ",";
         case TokenKind.Pipe: return "|";
         case TokenKind.LeftParenthesis: return "(";
@@ -143,20 +145,19 @@ repeat:
         else switch(data[cur])
         {
             case '"':
+            case '\'':
                 return string();
             case '<':
                 return argument();
-            static foreach (c; [CASE('=', TokenKind.Equal), CASE('.', TokenKind.Period),
-                                CASE(',', TokenKind.Comma), CASE('|', TokenKind.Pipe)])
+            case '{':
+                return code();
+            static foreach (c; [CASE('=', TokenKind.Equal), CASE(',', TokenKind.Comma),
+                                CASE(':', TokenKind.Colon), CASE(';', TokenKind.Semi),
+                                CASE('|', TokenKind.Pipe), CASE('(', TokenKind.LeftParenthesis)])
             {
                 case c.key:
                     return Token(c.value, cur++, 1, [ c.key ]);
             }
-            case '(':
-                if (cur+1 < data.length && data[cur+1] == '.')
-                    return code();
-                else
-                    return Token(TokenKind.LeftParenthesis, cur++, 1, "(");
             case ')':
                 if (cur+1 < data.length)
                     switch (data[cur+1])
@@ -256,8 +257,8 @@ repeat:
                 ++cur;
             ++cur;
         }
-        while (cur < data.length && data[cur] != ')');
-        if (cur == data.length || data[cur] != ')')
+        while (cur < data.length && data[cur] != '}');
+        if (cur == data.length || data[cur] != '}')
             error(data, pos, cur-pos, "Unterminated code");
         else
             ++cur;
@@ -266,8 +267,9 @@ repeat:
 
     Token string()
     {
+        immutable end = data[cur];
         auto pos = cur++;
-        while (cur < data.length && data[cur] != '"')
+        while (cur < data.length && data[cur] != end)
         {
             if (data[cur] == 0x0D || data[cur] == 0x0A)
             {
@@ -321,11 +323,13 @@ unittest
 
     checkToken("A", TokenKind.Identifier, "A");
     checkToken("\"str\"", TokenKind.String, "\"str\"");
+    checkToken("'str'", TokenKind.String, "'str'");
     checkToken("<arg>", TokenKind.Argument, "arg");
     checkToken("<.arg.>", TokenKind.Argument, "arg");
-    checkToken("(. code .)", TokenKind.Code, " code ");
+    checkToken("{. code .}", TokenKind.Code, " code ");
     checkToken("=", TokenKind.Equal, "=");
-    checkToken(".", TokenKind.Period, ".");
+    checkToken(":", TokenKind.Colon, ":");
+    checkToken(";", TokenKind.Semi, ";");
     checkToken(",", TokenKind.Comma, ",");
     checkToken("|", TokenKind.Pipe, "|");
     checkToken("(", TokenKind.LeftParenthesis, "(");
@@ -345,8 +349,8 @@ unittest
 unittest
 {
     immutable str = r"
-    A = B c d.
-    B = a | b.
+    A = B c d ;
+    B = a | b ;
 ";
 
     auto lexer = Lexer(str);
@@ -366,8 +370,8 @@ unittest
     assert(lexer.front.kind == TokenKind.Identifier);
     assert(lexer.front.val == "d");
     lexer.popFront;
-    assert(lexer.front.kind == TokenKind.Period);
-    assert(lexer.front.val == ".");
+    assert(lexer.front.kind == TokenKind.Semi);
+    assert(lexer.front.val == ";");
     lexer.popFront;
     assert(lexer.front.kind == TokenKind.Identifier);
     assert(lexer.front.val == "B");
@@ -384,8 +388,8 @@ unittest
     assert(lexer.front.kind == TokenKind.Identifier);
     assert(lexer.front.val == "b");
     lexer.popFront;
-    assert(lexer.front.kind == TokenKind.Period);
-    assert(lexer.front.val == ".");
+    assert(lexer.front.kind == TokenKind.Semi);
+    assert(lexer.front.val == ";");
     lexer.popFront;
     assert(lexer.front.kind == TokenKind.Eof);
     assert(lexer.empty);
@@ -404,8 +408,8 @@ unittest
     assert(toks[3].val == "c");
     assert(toks[4].kind == TokenKind.Identifier);
     assert(toks[4].val == "d");
-    assert(toks[5].kind == TokenKind.Period);
-    assert(toks[5].val == ".");
+    assert(toks[5].kind == TokenKind.Semi);
+    assert(toks[5].val == ";");
     assert(toks[6].kind == TokenKind.Identifier);
     assert(toks[6].val == "B");
     assert(toks[7].kind == TokenKind.Equal);
@@ -416,8 +420,8 @@ unittest
     assert(toks[9].val == "|");
     assert(toks[10].kind == TokenKind.Identifier);
     assert(toks[10].val == "b");
-    assert(toks[11].kind == TokenKind.Period);
-    assert(toks[11].val == ".");
+    assert(toks[11].kind == TokenKind.Semi);
+    assert(toks[11].val == ";");
 }
 
 unittest

@@ -84,9 +84,9 @@ unittest
     import lexer;
 
     immutable str = r"
-      A = B x .
-      B = C .
-      C = y .
+      A : B x ;
+      B : C ;
+      C : y ;
     ";
 
 	auto parser = Parser!Lexer(Lexer(str));

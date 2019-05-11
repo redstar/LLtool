@@ -2,5 +2,5 @@
 %start A
 %start S
 %%
-A = "a" .
+A : "a" ;
 // CHECK: Start symbol is already defined. Ignoring new definition.

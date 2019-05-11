@@ -20,35 +20,35 @@ The generated code makes some assumptions about the environment:
 
 ## Syntax
 
-The input for LLtool has the following specification:
+The input for syntax LLtool is similar to yacc/bison. It has the following specification:
 
     %token identifier, code, argument, string
     %start lltool
     %%
-    lltool = ( header )? ( rule )+ .
+    lltool : ( header )? ( rule )+ ;
 
-    header = ( "%start" identifier | "%token" tokenlist | "%eoi" identifier )* "%%" .
+    header : ( "%start" identifier | "%token" tokenlist | "%eoi" identifier )* "%%" ;
 
-    tokenlist = tokendecl ("," tokendecl )* .
+    tokenlist : tokendecl ("," tokendecl )* ;
 
-    tokendecl = (identifier | string) ( "=" identifier )? .
+    tokendecl : (identifier | string) ( "=" identifier )? ;
 
-    rule = nonterminal "=" rhs "." .
+    rule : nonterminal "=" rhs "." ;
 
-    nonterminal = identifier ( argument )? .
+    nonterminal : identifier ( argument )? ;
 
-    rhs = sequence ( "|" sequence )* .
+    rhs : sequence ( "|" sequence )* ;
 
-    sequence = ( group | identifier ( argument)? | string | code | "%if" code )* .
+    sequence : ( group | identifier ( argument)? | string | code | "%if" code )* ;
 
-    group = "(" rhs ( ")" | ")?" | ")*" | ")+" ) .
+    group : "(" rhs ( ")" | ")?" | ")*" | ")+" ) ;
 
 This specification uses the following tokens:
 
 - `identifier`: a sequence of letters and digits. First element must be a letter.
-  Only ASCII characters are support.
-- `string`: an arbitrary sequence of characters, enclosed by `"` and `"`.
-- `code`: an arbitrary sequence of characters, enclosed by `(.` and `.)`.
+  Only ASCII characters are supported.
+- `string`: an arbitrary sequence of characters, enclosed by `"` and `"` or `'` and `'`.
+- `code`: an arbitrary sequence of characters, enclosed by `{.` and `.}`.
 - `argument`: an arbitrary sequence of characters, enclosed by `<` and `>` or `<.` and `.>`.
 
 Single-line comments start with `//` and run until the end of line.

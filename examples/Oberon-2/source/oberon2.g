@@ -15,61 +15,61 @@ Changes:
 %start Module
 %%
 Module
-  = "MODULE" ident ";" (ImportList)? DeclSeq ("BEGIN" StatementSeq)? "END" ident ".".
+  : "MODULE" ident ";" (ImportList)? DeclSeq ("BEGIN" StatementSeq)? "END" ident "." ;
 
 ImportList
-  = "IMPORT" Import ("," Import)* ";".
+  : "IMPORT" Import ("," Import)* ";" ;
 
 Import
-  =                                     (. string aliasName; size_t aliasPos; .)
-    (%if (. isAlias() .) ident          (. aliasName = tok.val; aliasPos = tok.pos; .)
-    ":=")? ident                        (. addImport(tok.pos, tok.val, aliasPos, aliasName); .)
-  .
+  :                                     {. string aliasName; size_t aliasPos; .}
+    (%if {. isAlias() .} ident          {. aliasName = tok.val; aliasPos = tok.pos; .}
+    ":=")? ident                        {. addImport(tok.pos, tok.val, aliasPos, aliasName); .}
+  ;
 
 DeclSeq
-  = ( "CONST" (ConstDecl ";" )* | "TYPE" (TypeDecl ";")* | "VAR" (VarDecl ";")* )*
-    (%if (. isProcDecl() .) ProcDecl ";" | ForwardDecl ";")*.
+  : ( "CONST" (ConstDecl ";" )* | "TYPE" (TypeDecl ";")* | "VAR" (VarDecl ";")* )*
+    (%if {. isProcDecl() .} ProcDecl ";" | ForwardDecl ";")* ;
 
 ConstDecl
-  = IdentDef "=" ConstExpr.
+  : IdentDef "=" ConstExpr ;
 
 TypeDecl
-  = IdentDef "=" Type.
+  : IdentDef "=" Type ;
 
 VarDecl
-  = IdentList ":" Type.
+  : IdentList ":" Type ;
 
 ProcDecl
-  = "PROCEDURE" (Receiver)? IdentDef (FormalPars)? ";" DeclSeq ("BEGIN" StatementSeq)? "END" ident.
+  : "PROCEDURE" (Receiver)? IdentDef (FormalPars)? ";" DeclSeq ("BEGIN" StatementSeq)? "END" ident ;
 
 ForwardDecl
-  = "PROCEDURE" "^" (Receiver)? IdentDef (FormalPars)?.
+  : "PROCEDURE" "^" (Receiver)? IdentDef (FormalPars)? ;
 
 FormalPars
-  = "(" (FPSection (";" FPSection)*)? ")" (":" Qualident)?.
+  : "(" (FPSection (";" FPSection)*)? ")" (":" Qualident)? ;
 
 FPSection
-  = ("VAR")? ident ("," ident)* ":" Type.
+  : ("VAR")? ident ("," ident)* ":" Type ;
 
 Receiver
-  = "(" ("VAR")? ident ":" ident ")".
+  : "(" ("VAR")? ident ":" ident ")" ;
 
 Type
-  = Qualident
+  : Qualident
   | "ARRAY" (ConstExpr ("," ConstExpr)*)? "OF" Type
   | "RECORD" ("("Qualident")")? FieldList (";" FieldList)* "END"
   | "POINTER" "TO" Type
   | "PROCEDURE" (FormalPars)?
-  .
+  ;
 
 FieldList
-  = (IdentList ":" Type)?.
+  : (IdentList ":" Type)? ;
 
 StatementSeq
-  = Statement (";" Statement)*.
+  : Statement (";" Statement)* ;
 
 Statement
-  = ( Designator (":=" Expr | ( "(" (ExprList)? ")")?)
+  : ( Designator (":=" Expr | ( "(" (ExprList)? ")")?)
       | "IF" Expr "THEN" StatementSeq
         ("ELSIF" Expr "THEN" StatementSeq)?
         ("ELSE" StatementSeq)?
@@ -89,31 +89,31 @@ Statement
       | "EXIT"
       | "RETURN" (Expr)?
     )?
-  .
+  ;
 
 Case
-  = (CaseLabels ("," CaseLabels)* ":" StatementSeq)?.
+  : (CaseLabels ("," CaseLabels)* ":" StatementSeq)? ;
 
 CaseLabels
-  = ConstExpr (".." ConstExpr)?.
+  : ConstExpr (".." ConstExpr)? ;
 
 Guard
-  = Qualident ":" Qualident.
+  : Qualident ":" Qualident ;
 
 ConstExpr
-  = Expr.
+  : Expr ;
 
 Expr
-  = SimpleExpr (Relation SimpleExpr)?.
+  : SimpleExpr (Relation SimpleExpr)? ;
 
 SimpleExpr
-  = ("+" | "-")? Term (AddOp Term)*.
+  : ("+" | "-")? Term (AddOp Term)* ;
 
 Term
-  = Factor (MulOp Factor)*.
+  : Factor (MulOp Factor)* ;
 
 Factor
-  = Designator ("(" (ExprList)? ")")?
+  : Designator ("(" (ExprList)? ")")?
   | number
   | character
   | string
@@ -121,37 +121,37 @@ Factor
   | Set
   | "(" Expr ")"
   | "~" Factor
-  .
+  ;
 
 Set
-  = "{" (Element ("," Element)* )? "}".
+  : "{" (Element ("," Element)* )? "}" ;
 
 Element
-  = Expr (".." Expr)?.
+  : Expr (".." Expr)? ;
 
 Relation
-  = "=" | "#" | "<" | "<=" | ">" | ">=" | "IN" | "IS".
+  : "=" | "#" | "<" | "<=" | ">" | ">=" | "IN" | "IS" ;
 
 AddOp
-  = "+" | "-" | "OR".
+  : "+" | "-" | "OR" ;
 
 MulOp
-  = "*" | "/" | "DIV" | "MOD" | "&".
+  : "*" | "/" | "DIV" | "MOD" | "&" ;
 
 Designator
-  = Qualident ( %if (. !isProcCall() .) ("." ident | "[" ExprList "]" | "^" | "(" Qualident ")") )*.
+  : Qualident ( %if {. !isProcCall() .} ("." ident | "[" ExprList "]" | "^" | "(" Qualident ")") )* ;
 
 ExprList
-  = Expr ("," Expr)*.
+  : Expr ("," Expr)* ;
 
 IdentList
-  = IdentDef ("," IdentDef)*.
+  : IdentDef ("," IdentDef)* ;
 
 Qualident
-  = ( %if (. isModule() .) ident ".")? ident.
+  : ( %if {. isModule() .} ident ".")? ident ;
 
 IdentDef
-  = ident ("*" | "-")?.
+  : ident ("*" | "-")? ;
 
 number
-  = integer | real.
+  : integer | real ;

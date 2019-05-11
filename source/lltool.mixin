@@ -59,10 +59,10 @@ void parseTokendecl() {
 void parseRule() {
      Node node; 
     parseNonterminal(node);
-    consume(TokenKind.Equal);
+    consume(TokenKind.Colon);
     parseRhs(node.link);
      node.link.back = node; 
-    consume(TokenKind.Period);
+    consume(TokenKind.Semi);
 }
 
 void parseNonterminal(out Node node) {

@@ -69,12 +69,12 @@ unittest
     immutable content = `
 	%token a, b, c, d
 	%%
-	S = Y .
-	Y = Y Z | Y a | b .
-	U = V .
-	X = c .
-	V = V d | d .
-    Z = Z X .
+	S : Y ;
+	Y : Y Z | Y a | b ;
+	U : V ;
+	X : c ;
+	V : V d | d ;
+    Z : Z X ;
 `;
 	auto grammar = Parser!Lexer(Lexer(content)).parse;
 	calculateReachable(grammar);
@@ -187,12 +187,12 @@ unittest
     immutable content = `
 	%token id
 	%%
-	S = E .
-	E = T Eq .
-	Eq = ( "+" E )? .
-    T = F Tq .
-	Tq = ( "*" T )? .
-	F = id | "(" E ")" .
+	S : E ;
+	E : T Eq ;
+	Eq : ( "+" E )? ;
+    T : F Tq ;
+	Tq : ( "*" T )? ;
+	F : id | "(" E ")" ;
 `;
 	auto grammar = Parser!Lexer(Lexer(content)).parse;
 	calculateDerivesEpsilon(grammar);
@@ -207,11 +207,11 @@ unittest
 {
     // See https://www.codewars.com/kata/compute-nullable-non-terminals
     immutable content = `
-    A = "a" B | "c" C.
-    B = ( A B )? .
-    C = "b" "c" .
-    D = ( "a" "b" )? .
-    E = B D .
+    A : "a" B | "c" C ;
+    B : ( A B )? ;
+    C : "b" "c" ;
+    D : ( "a" "b" )? ;
+    E : B D ;
 `;
 	auto grammar = Parser!Lexer(Lexer(content)).parse;
 	calculateDerivesEpsilon(grammar);
@@ -226,9 +226,9 @@ unittest
 {
     // See https://mkaul.wordpress.com/2009/12/11/computing-nullable-first-and-follow-sets/
     immutable content = `
-    Z = "d" | X Y Z .
-    Y = ( "c" )? .
-    X = Y | "a" .
+    Z : "d" | X Y Z ;
+    Y : ( "c" )? ;
+    X : Y | "a" ;
 `;
 	auto grammar = Parser!Lexer(Lexer(content)).parse;
 	calculateDerivesEpsilon(grammar);
@@ -260,10 +260,10 @@ unittest
     immutable content = `
 	%token a, b
     %%
-	S = a X .
-	X = b S | a Y b Y.
-	Y = b a | a Z .
-	Z = a Z X .
+	S : a X ;
+	X : b S | a Y b Y ;
+	Y : b a | a Z ;
+	Z : a Z X ;
 `;
 	auto grammar = Parser!Lexer(Lexer(content)).parse;
 	calculateProductive(grammar);
@@ -575,12 +575,12 @@ unittest
     immutable content = `
 	%token id
 	%%
-	S = E .
-	E = T Eq .
-	Eq = ( "+" E )? .
-    T = F Tq .
-	Tq = ( "*" T )? .
-	F = id | "(" E ")" .
+	S : E ;
+	E : T Eq ;
+	Eq : ( "+" E )? ;
+    T : F Tq ;
+	Tq : ( "*" T )? ;
+	F : id | "(" E ")" ;
 `;
 	auto grammar = Parser!Lexer(Lexer(content)).parse;
 	calculateReachable(grammar);
@@ -769,12 +769,12 @@ unittest
     immutable content = `
 	%token number
 	%%
-	stmt = expr ";" .
-	expr = ( term exprq )? .
-	exprq = ( "+" term exprq )? .
-    term = factor termq .
-	termq = ( "*" factor termq )? .
-	factor = "(" expr ")" | number .
+	stmt : expr ";" ;
+	expr : ( term exprq )? ;
+	exprq : ( "+" term exprq )? ;
+    term : factor termq ;
+	termq : ( "*" factor termq )? ;
+	factor : "(" expr ")" | number ;
 `;
 	auto grammar = Parser!Lexer(Lexer(content)).parse;
 	calculateReachable(grammar);
