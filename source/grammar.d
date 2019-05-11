@@ -538,6 +538,7 @@ in(n !is null && n.type != NodeType.Terminal)
 {
     if (n.type == NodeType.Nonterminal)
         return n;
+repeat:
     while (n.back is null)
     {
         assert(n.next !is null);
@@ -545,6 +546,8 @@ in(n !is null && n.type != NodeType.Terminal)
     }
     while (n.type != NodeType.Nonterminal)
     {
+        if (n.back is null)
+            goto repeat;
         assert(n.back !is null);
         n = n.back;
     }
