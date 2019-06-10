@@ -90,16 +90,4 @@ void main(string[] args)
 	{
 		error(e.msg);
 	}
-	catch (Throwable e)
-	{
-		version (AFL)
-		{
-			import core.stdc.stdlib: abort;
-			abort();
-		}
-		else
-		{
-			throw e;
-		}
-	}
 }
