@@ -5,3 +5,10 @@ authors "Kai Nacke"
 copyright "Copyright © 2019, Kai Nacke"
 license "BSD 3-clause"
 stringImportPaths "source/"
+buildType "afl" {
+    toolchainRequirements dmd="no" gdc="no" ldc=">=1.0.0"
+    dflags "-plugin=$AFL_PATH/afl-llvm-pass.so"
+    sourceFiles "$AFL_PATH/afl-llvm-rt.o"
+    versions "AFL"
+    buildOptions "debugMode" "debugInfo" "unittests"
+}
