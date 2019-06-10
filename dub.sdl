@@ -1,5 +1,5 @@
 name "lltool"
-description "A tool to analyze EBNF grammars"
+description "A recursive-descent parser generator for D"
 targetName "LLtool"
 authors "Kai Nacke"
 copyright "Copyright © 2019, Kai Nacke"
