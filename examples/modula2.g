@@ -2,32 +2,38 @@
  * Modula-2 grammar from "Programming in Modula-2", fourth edition.
  * See http://freepages.modula2.org/report4/modula-2.html
  *
- * This grammar has four LLA1) conflicts:
+ * The following changes were made:
+ * - ident renamed to identifier
+ * - integer and real renamed to integer_literal and real_literal and
+ *   introduced char_literal. This is inspired by ISO.
+ *
+ * This grammar has four LL(A)1) conflicts:
  * - between qualident and designator: "." is start and successor of deletable element
- * - in SimpleType between qualident and SubrangeType: both alternatives start with ident
- * - in factor between qualident and designator: both alternatices start with ident
- * - in statement between assignment and assignment: both alternatices start with ident
+ * - in SimpleType between qualident and SubrangeType: both alternatives start with identifier
+ * - in factor between qualident and designator: both alternatives start with identifier
+ * - in statement between assignment and assignment: both alternatives start with identifier
  *
  * A resolver can be used to resolve these conflicts.
  */
-%token ident, integer, real, string
+%token identifier, integer_literal, char_literal, real_literal, string_literal
 %start CompilationUnit
 %%
-number : integer | real ;
-qualident : ident ( "." ident )* ;
-ConstantDeclaration : ident "=" ConstExpression ;
+number : integer_literal | real_literal ;
+string : string_literal | char_literal;
+qualident : identifier ("." identifier )* ;
+ConstantDeclaration : identifier "=" ConstExpression ;
 ConstExpression : expression ;
-TypeDeclaration : ident "=" type ;
+TypeDeclaration : identifier "=" type ;
 type : SimpleType | ArrayType | RecordType | SetType| PointerType | ProcedureType ;
 SimpleType : qualident | enumeration | SubrangeType ;
 enumeration : "(" IdentList ")" ;
-IdentList : ident ( "," ident )* ;
-SubrangeType : ( ident )? "[" ConstExpression ".." ConstExpression "]" ;
+IdentList : identifier ( "," identifier )* ;
+SubrangeType : ( identifier )? "[" ConstExpression ".." ConstExpression "]" ;
 ArrayType : "ARRAY" SimpleType ( "," SimpleType )* "OF" type ;
 RecordType : "RECORD" FieldListSequence "END" ;
 FieldListSequence : FieldList ( ";" FieldList )* ;
 FieldList : (IdentList ":" type |
-            "CASE" ( ident)? ":" qualident "OF" variant
+            "CASE" ( identifier)? ":" qualident "OF" variant
             ( "|" variant )* ( "ELSE" FieldListSequence )? "END" )? ;
 variant : ( CaseLabelList ":" FieldListSequence )? ;
 CaseLabelList : CaseLabels ( "," CaseLabels )* ;
@@ -38,7 +44,7 @@ ProcedureType : "PROCEDURE" ( FormalTypeList )? ;
 FormalTypeList : "(" ( ("VAR")? FormalType
                  ("," ( "VAR")? FormalType )* )? ")" ( ":" qualident)? ;
 VariableDeclaration : IdentList ":" type ;
-designator : qualident ( "." ident | "[" ExpList "]" | "^" )* ;
+designator : qualident ( "." identifier | "[" ExpList "]" | "^" )* ;
 ExpList : expression ( "," expression )* ;
 expression : SimpleExpression ( relation SimpleExpression )? ;
 relation : "=" | "#" | "<" | "<=" | ">" | ">=" | "IN" ;
@@ -71,14 +77,14 @@ WhileStatement : "WHILE" expression "DO"
                  StatementSequence "END" ;
 RepeatStatement : "REPEAT" StatementSequence
                   "UNTIL" expression ;
-ForStatement : "FOR" ident ":=" expression
+ForStatement : "FOR" identifier ":=" expression
                "TO" expression ( "BY" ConstExpression )?
                "DO" StatementSequence "END" ;
 LoopStatement : "LOOP" StatementSequence "END" ;
 WithStatement : "WITH" designator "DO"
                 StatementSequence "END" ;
-ProcedureDeclaration : ProcedureHeading ";" block ident ;
-ProcedureHeading : "PROCEDURE" ident ( FormalParameters )? ;
+ProcedureDeclaration : ProcedureHeading ";" block identifier ;
+ProcedureHeading : "PROCEDURE" identifier ( FormalParameters )? ;
 block : ( declaration )*  ( "BEGIN" StatementSequence )? "END" ;
 declaration : "CONST" ( ConstantDeclaration ";" )* |
               "TYPE" ( TypeDeclaration ";" )* |
@@ -88,18 +94,18 @@ declaration : "CONST" ( ConstantDeclaration ";" )* |
 FormalParameters : "(" ( FPSection ( ";" FPSection )* )? ")" ( ":" qualident )? ;
 FPSection : ( "VAR" )? IdentList ":" FormalType ;
 FormalType : ( "ARRAY" "OF" )? qualident ;
-ModuleDeclaration : "MODULE" ident ( priority )?
-                    ";" ( import )* ( export )? block ident ;
+ModuleDeclaration : "MODULE" identifier ( priority )?
+                    ";" ( import )* ( export )? block identifier ;
 priority : "[" ConstExpression "]" ;
 export : "EXPORT" ( "QUALIFIED" )? IdentList ";" ;
-import : ("FROM" ident)? "IMPORT" IdentList ";" ;
-DefinitionModule : "DEFINITION" "MODULE" ident ";"
-                   ( import )* ( definition )* "END" ident "." ;
+import : ("FROM" identifier)? "IMPORT" IdentList ";" ;
+DefinitionModule : "DEFINITION" "MODULE" identifier ";"
+                   ( import )* ( definition )* "END" identifier "." ;
 definition : "CONST" ( ConstantDeclaration ";" )* |
-             "TYPE" ( ident ( "="type )? ";" )* |
+             "TYPE" ( identifier ( "="type )? ";" )* |
              "VAR" ( VariableDeclaration ";" )* |
              ProcedureHeading ";" ;
-ProgramModule : "MODULE" ident ( priority )? ";"
-                ( import )* block ident "." ;
+ProgramModule : "MODULE" identifier ( priority )? ";"
+                ( import )* block identifier "." ;
 CompilationUnit : DefinitionModule |
                   ("IMPLEMENTATION")? ProgramModule ;
