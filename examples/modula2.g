@@ -7,11 +7,12 @@
  * - integer and real renamed to integer_literal and real_literal and
  *   introduced char_literal. This is inspired by ISO.
  *
- * This grammar has four LL(A)1) conflicts:
+ * The original grammar has four LL(1) conflicts:
  * - between qualident and designator: "." is start and successor of deletable element
  * - in SimpleType between qualident and SubrangeType: both alternatives start with identifier
- * - in factor between qualident and designator: both alternatives start with identifier
- * - in statement between assignment and assignment: both alternatives start with identifier
+ * - in factor between set and designator: both alternatives start with identifier
+ * - in statement between assignment and ProcedureCall: both alternatives start with identifier
+ *   -> This is solved by factoring out the common prefix.
  *
  * A resolver can be used to resolve these conflicts.
  */
@@ -44,7 +45,8 @@ ProcedureType : "PROCEDURE" ( FormalTypeList )? ;
 FormalTypeList : "(" ( ("VAR")? FormalType
                  ("," ( "VAR")? FormalType )* )? ")" ( ":" qualident)? ;
 VariableDeclaration : IdentList ":" type ;
-designator : qualident ( "." identifier | "[" ExpList "]" | "^" )* ;
+designator : qualident  ( selector )* ;
+selector : "." identifier | "[" ExpList "]" | "^" ;
 ExpList : expression ( "," expression )* ;
 expression : SimpleExpression ( relation SimpleExpression )? ;
 relation : "=" | "#" | "<" | "<=" | ">" | ">=" | "IN" ;
@@ -58,14 +60,13 @@ factor : number | string | set |
 set : ( qualident )? "{" ( element ( "," element )* )? "}" ;
 element : expression ( ".." expression )? ;
 ActualParameters : "(" ( ExpList )? ")" ;
-statement : ( assignment | ProcedureCall |
+statement : ( ( designator ( ":=" expression  /* assignment */
+                           | ( ActualParameters )? /*  ProcedureCall */ ) ) |
             IfStatement | CaseStatement |
             WhileStatement | RepeatStatement |
             LoopStatement | ForStatement |
             WithStatement | "EXIT" |
             "RETURN" ( expression )? )? ;
-assignment : designator ":=" expression ;
-ProcedureCall : designator ( ActualParameters )? ;
 StatementSequence : statement ( ";" statement )* ;
 IfStatement : "IF" expression "THEN" StatementSequence
               ( "ELSIF" expression "THEN" StatementSequence )*
