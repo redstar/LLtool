@@ -11,8 +11,10 @@
  * - between qualident and designator: "." is start and successor of deletable element
  * - in SimpleType between qualident and SubrangeType: both alternatives start with identifier
  * - in factor between set and designator: both alternatives start with identifier
+ *   -> This is solved by factoring out the common prefix "qualident". This
+ *      introduces a split copy of "designator"!
  * - in statement between assignment and ProcedureCall: both alternatives start with identifier
- *   -> This is solved by factoring out the common prefix.
+ *   -> This is solved by factoring out the common prefix "designator".
  *
  * A resolver can be used to resolve these conflicts.
  */
@@ -54,10 +56,12 @@ SimpleExpression : ( "+" | "-" )? term ( AddOperator term )* ;
 AddOperator : "+" | "-" | "OR" ;
 term : factor ( MulOperator factor )* ;
 MulOperator : "*" | "/" | "DIV" | "MOD" | "AND" ;
-factor : number | string | set |
-         designator ( ActualParameters )? |
+factor : number | string |
+        qualident ( setvalues /* set with type identifier */
+                  | ( selector )* ( ActualParameters )? /* procedure constant / call */ ) |
+        setvalues /* set without type identifier */ |
          "(" expression ")" | "NOT" factor ;
-set : ( qualident )? "{" ( element ( "," element )* )? "}" ;
+setvalues : "{" ( element ( "," element )* )? "}" ;
 element : expression ( ".." expression )? ;
 ActualParameters : "(" ( ExpList )? ")" ;
 statement : ( ( designator ( ":=" expression  /* assignment */
