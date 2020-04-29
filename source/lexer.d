@@ -256,6 +256,8 @@ repeat:
 
     Token code()
     {
+        import std.uni : isWhite;
+
         auto pos = cur;
         cur += 2;
         do
@@ -269,7 +271,13 @@ repeat:
             error(data, pos, cur-pos, "Unterminated code");
         else
             ++cur;
-        return Token(TokenKind.Code, pos, cur-pos, data[pos+2..cur-2]);
+        auto begin = pos+2;
+        auto end = cur-2;
+        while (begin < end && isWhite(data[begin]))
+            ++begin;
+        while (begin < end && isWhite(data[end-1]))
+            --end;
+        return Token(TokenKind.Code, pos, cur-pos, data[begin..end]);
     }
 
     Token string()
