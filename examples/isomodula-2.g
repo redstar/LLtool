@@ -17,7 +17,7 @@
  *
  * Resolved LL(1) conflicts:
  * - Between properProcedureType and functionProcedureType.
- *   Integrated int procedureType using a predicate.
+ *   Integrated into procedureType using a predicate.
  */
 %token identifier, integer_literal, char_literal, real_literal, string_literal
 %start compilationModule
@@ -346,7 +346,7 @@ stepSize :
 variableDesignator :
    entireDesignator | indexedDesignator |
    selectedDesignator | dereferencedDesignator |
-   (objectSelectedDesignator")! {.getLangOpts().ISOObjects.};
+   (objectSelectedDesignator)! {.getLangOpts().ISOObjects.} ;
 entireDesignator :
    qualifiedIdentifier ;
 indexedDesignator :
