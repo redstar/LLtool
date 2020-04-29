@@ -14,16 +14,22 @@
  *   "{": "(:"
  *   "}": ":)"
  *   "|": "!"
+ *
+ * Resolved LL(1) conflicts:
+ * - Between properProcedureType and functionProcedureType.
+ *   Integrated int procedureType using a predicate.
  */
 %token identifier, integer_literal, char_literal, real_literal, string_literal
 %start compilationModule
 %%
-compilationModule :
-   programModule | definitionModule | implementationModule |
-   genericDefinitionModule /*Generics*/ | genericImplementationModule /*Generics*/ |
-   refiningDefinitionModule /*Generics*/ | refiningImplementationModule /*Generics*/ ;
+compilationModule :                     {. bool IsGeneric = false, IsObjects = false; .}
+   (programModule | definitionModule | implementationModule |
+   (genericDefinitionModule /*Generics*/ | genericImplementationModule /*Generics*/ |
+   refiningDefinitionModule /*Generics*/ | refiningImplementationModule /*Generics*/ )!
+   {.getLangOpts().ISOGenerics.} )
+   ;
 programModule :
-   ("UNSAFEGUARDED" /*OO*/)? "MODULE" moduleIdentifier (protection)? ";"
+   ("UNSAFEGUARDED")! {.getLangOpts().ISOObjects.} "MODULE" moduleIdentifier (protection)? ";"
    importLists moduleBlock moduleIdentifier "." ;
 moduleIdentifier :
    identifier ;
@@ -32,10 +38,10 @@ protection :
 protectionExpression :
    constantExpression ;
 definitionModule :
-   ("UNSAFEGUARDED" /*OO*/)? "DEFINITION" "MODULE" moduleIdentifier ";"
+   ("UNSAFEGUARDED")! {.getLangOpts().ISOObjects.} "DEFINITION" "MODULE" moduleIdentifier ";"
    importLists definitions "END" moduleIdentifier "." ;
 implementationModule :
-   ("UNSAFEGUARDED" /*OO*/)? "IMPLEMENTATION" "MODULE" moduleIdentifier (protection)?
+   ("UNSAFEGUARDED")! {.getLangOpts().ISOObjects.} "IMPLEMENTATION" "MODULE" moduleIdentifier (protection)?
    ";" importLists moduleBlock moduleIdentifier "." ;
 importLists :
    ( importList )* ;
@@ -52,7 +58,7 @@ unqualifiedExport :
 qualifiedExport :
    "EXPORT" "QUALIFIED" identifierList ";" ;
 qualifiedIdentifier :
-   (moduleIdentifier ".")* (classIdentifier /*OO*/)? identifier ;
+   (moduleIdentifier ".")* (classIdentifier)! {.getLangOpts().ISOObjects.} identifier ;
 /* Generics start */
 genericDefinitionModule :
    "GENERIC" "DEFINITION" "MODULE" moduleIdentifier (formalModuleParameters)?
@@ -94,7 +100,7 @@ definition :
    "TYPE" (typeDefinition ";")* |
    "VAR" (variableDeclaration ";")* |
    procedureHeading ";" |
-   classDefinition /*OO*/ ";" ;
+   (classDefinition ";")! {.getLangOpts().ISOObjects.} ;
 procedureHeading :
    properProcedureHeading | functionProcedureHeading ;
 typeDefinition :
@@ -125,7 +131,7 @@ declaration :
    "TYPE" (typeDeclaration ";")* |
    "VAR" (variableDeclaration ";")* |
    procedureDeclaration ";" |
-   classDeclaration /*OO*/ ";" |
+   (classDeclaration ";")! {.getLangOpts().ISOObjects.} |
    localModuleDeclaration ";" ;
 constantDeclaration :
    identifier "=" constantExpression ;
@@ -186,6 +192,7 @@ pointerType :
    "POINTER" "TO" boundType ;
 boundType :
    typeDenoter ;
+/* Replaced:
 procedureType :
    properProcedureType | functionProcedureType ;
 properProcedureType :
@@ -193,6 +200,10 @@ properProcedureType :
 functionProcedureType :
    "PROCEDURE" "(" (formalParameterTypeList)?
     ")" ":" functionResultType ;
+ */
+procedureType :                         {. bool HasParen = false; .}
+   "PROCEDURE" ( "(" {. HasParen = true.} (formalParameterTypeList)? ")")?
+   (":" functionResultType)! {. HasParen .} ;
 formalParameterTypeList :
    formalParameterType ("," formalParameterType)* ;
 formalParameterType :
@@ -265,7 +276,7 @@ statement :
     returnStatement |retryStatement | withStatement |
     ifStatement | caseStatement | whileStatement |
     repeatStatement | loopStatement | exitStatement | forStatement |
-    guardStatement /*OO*/;
+    (guardStatement)! {.getLangOpts().ISOObjects.};
 statementSequence :
    statement (";" statement)* ;
 emptyStatement :
@@ -335,7 +346,7 @@ stepSize :
 variableDesignator :
    entireDesignator | indexedDesignator |
    selectedDesignator | dereferencedDesignator |
-   objectSelectedDesignator /*OO*/;
+   (objectSelectedDesignator")! {.getLangOpts().ISOObjects.};
 entireDesignator :
    qualifiedIdentifier ;
 indexedDesignator :
@@ -382,7 +393,7 @@ inequalityOperator : "<>" | "#" ;
 logicalConjunctionOperator : "AND" | "&";
 valueDesignator :
   entireValue | indexedValue | selectedValue | dereferencedValue |
-  objectSelectedValue /*OO*/;
+  (objectSelectedValue)! {.getLangOpts().ISOObjects.};
 entireValue :
    qualifiedIdentifier ;
 indexedValue :
