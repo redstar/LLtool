@@ -76,5 +76,9 @@ group<out Node node>
       | ")?"                            {. node.cardinality = Cardinality.ZeroOrOne; .}
       | ")*"                            {. node.cardinality = Cardinality.ZeroOrMore; .}
       | ")+"                            {. node.cardinality = Cardinality.OneOrMore; .}
+      | ")!" code                       {. node.cardinality = Cardinality.ZeroOrOne;
+                                           node.isPredicate = true;
+                                           node.predicate = tok.val;
+                                        .}
     )
   ;

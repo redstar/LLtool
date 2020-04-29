@@ -1,3 +1,4 @@
+
 void parseLltool() {
     if (tok.kind.among(TokenKind.PercentPercent, TokenKind.Percenteoi, TokenKind.Percentstart, TokenKind.Percenttoken)) {
         parseHeader();
@@ -145,6 +146,15 @@ void parseGroup(out Node node) {
     }
     else if (tok.kind == TokenKind.RightParenthesisPlus) {
          node.cardinality = Cardinality.OneOrMore; 
+        advance();
+    }
+    else if (tok.kind == TokenKind.RightParenthesisExclaim) {
+        advance();
+        expect(TokenKind.Code);
+         node.cardinality = Cardinality.ZeroOrOne;
+                                           node.isPredicate = true;
+                                           node.predicate = tok.val;
+                                        
         advance();
     }
 }

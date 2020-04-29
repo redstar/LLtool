@@ -81,7 +81,10 @@ in(node.type == NodeType.Group)
             formattedWrite(sink, "%s} while (%s);\n", ws, condition!false(node.link));
             break;
         case Cardinality.ZeroOrOne:
-            formattedWrite(sink, "%sif (%s) {\n", ws, condition!false(node.link));
+            if (node.isPredicate)
+                formattedWrite(sink, "%sif (%s && %s) {\n", ws, condition!false(node.link), node.predicate);
+            else
+                formattedWrite(sink, "%sif (%s) {\n", ws, condition!false(node.link));
             generateAlternativeOrSequence(sink, indent+1, node.link, true);
             formattedWrite(sink, "%s}\n", ws);
             break;

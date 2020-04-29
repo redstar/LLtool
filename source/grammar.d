@@ -326,6 +326,9 @@ public:
     // True if there is a LL(1) conflict
     bool hasConflict;
 
+    // True if code is predicate
+    bool isPredicate;
+
     // True if code is resolver
     bool isResolver;
 
@@ -472,6 +475,20 @@ public:
     string code(string src)
     {
         assert(type == NodeType.Code);
+        return this.text = src;
+    }
+
+    @property
+    string predicate()
+    {
+        assert(type == NodeType.Group && isPredicate);
+        return text;
+    }
+
+    @property
+    string predicate(string src)
+    {
+        assert(type == NodeType.Group && isPredicate);
         return this.text = src;
     }
 }
