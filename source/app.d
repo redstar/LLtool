@@ -2,7 +2,7 @@
 /**
  * Main module of the application.
  *
- * Copyright:  (C) 2019 by Kai Nacke
+ * Copyright:  (C) 2019, 2020 by Kai Nacke
  *
  * License: See LICENSE file
  *
@@ -56,7 +56,8 @@ void main(string[] args)
 	try
 	{
 		string inputFilename = args[1];
-		string outputFilename = output.length > 0 ? output : inputFilename.setExtension("mixin");
+		string outputFilename = output.length > 0 ? output
+		                                          : inputFilename.setExtension(generateCPP ? "def" : "mixin");
 
 		string content = readText(inputFilename);
 		auto lexer = Lexer(content);
@@ -84,7 +85,7 @@ void main(string[] args)
 
 		auto sink = Sink(outputFilename);
 		scope(exit) sink.close();
-		generate(sink, grammar);
+		generate(sink, grammar, generateCPP, cppClassname);
 	}
 	catch (FileException e)
 	{

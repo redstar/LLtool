@@ -2,7 +2,7 @@
 /**
  * This module handles command line parsing and holds all parsed values.
  *
- * Copyright:  (C) 2019 by Kai Nacke
+ * Copyright:  (C) 2019, 2020 by Kai Nacke
  *
  * License: See LICENSE file
  *
@@ -21,6 +21,12 @@ bool debugging;
 /// Treat warnings as errors?
 bool warningsAreErrors;
 
+/// Should we generate C++ source? (Iiiiihhh!)
+bool generateCPP;
+
+/// Optional name of C++ class.
+string cppClassname;
+
 /**
  * Parses the commandline.
  *
@@ -34,6 +40,8 @@ bool parseCmdLine(ref string[] args)
 {
    	auto result = getopt(args,
 		std.getopt.config.caseSensitive,
+		"cpp", "Generate C++ source", &generateCPP,
+		"cppclass", "Name of generated C++ class", &cppClassname,
 		"debug|d", "Enable debug output", &debugging,
 		"o", "The name of output file", &output,
 		"w", "Treat warnings are errors", &warningsAreErrors,

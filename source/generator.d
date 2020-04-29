@@ -2,7 +2,7 @@
 /**
  * This module provides the code generator for D.
  *
- * Copyright:  (C) 2019 by Kai Nacke
+ * Copyright:  (C) 2019, 2020 by Kai Nacke
  *
  * License: See LICENSE file
  *
@@ -15,9 +15,23 @@ import std.algorithm : among;
 import std.format : formattedWrite;
 import std.range : isOutputRange;
 
-void generate(R)(R sink, Grammar grammar) if (isOutputRange!(R, string))
+void generate(R)(R sink, Grammar grammar, bool wantCPP, string cppClassname) if (isOutputRange!(R, string))
 {
-    bool first = true;
+    import std.string : toUpper;
+    string ppName = cppClassname.length > 0 ? cppClassname.toUpper : "PARSER";
+    prefix = wantCPP && cppClassname.length > 0 ? cppClassname ~ "::" : "";
+    generateCPP = wantCPP;
+    if (wantCPP)
+    {
+        formattedWrite(sink, "#ifdef %s_DECLARATION\n", ppName);
+	    foreach (node; grammar.nonterminals)
+        {
+            generateCPPRulePrototype(sink, 0, node);
+        }
+        formattedWrite(sink, "#endif // of %s_DECLARATION\n", ppName);
+        formattedWrite(sink, "#ifdef %s_DEFINITION\n", ppName);
+    }
+    bool first = wantCPP;
 	foreach (node; grammar.nonterminals)
     {
         if (first)
@@ -26,16 +40,30 @@ void generate(R)(R sink, Grammar grammar) if (isOutputRange!(R, string))
             sink.put("\n");
         generateRule(sink, 0, node);
     }
+    if (wantCPP)
+    {
+        formattedWrite(sink, "#endif // of %s_DEFINITION\n", ppName);
+    }
 }
 
 private:
+bool generateCPP; // TODO Remove HACK.
+string prefix; // TODO Remove HACK.
+
 void generateRule(R)(R sink, size_t indent, Node node)
 in(node.type == NodeType.Nonterminal)
 {
     const ws = whitespace(indent);
-    formattedWrite(sink, "%svoid parse%s(%s) {\n", ws, firstToUpper(node.name), node.formalArgs);
+    formattedWrite(sink, "%svoid %sparse%s(%s) {\n", ws, prefix, firstToUpper(node.name), node.formalArgs);
     generateAlternativeOrSequence(sink, indent+1, node.link);
     formattedWrite(sink, "%s}\n", ws);
+}
+
+void generateCPPRulePrototype(R)(R sink, size_t indent, Node node)
+in(node.type == NodeType.Nonterminal)
+{
+    const ws = whitespace(indent);
+    formattedWrite(sink, "%svoid parse%s(%s);\n", ws, firstToUpper(node.name), node.formalArgs);
 }
 
 void generateGroup(R)(R sink, const size_t indent, Node node)
@@ -187,11 +215,14 @@ in(set !is null)
         return "false";
     if (set.length == 1)
     {
-        return "tok.kind == " ~ tokenName(set.front);
+        if (generateCPP)
+            return "Tok.getKind() == " ~ tokenName(set.front);
+        else
+            return "tok.kind == " ~ tokenName(set.front);
     }
     else
     {
-        string c = "tok.kind.among(";
+        string c = generateCPP ? "Tok.isOneOf(" : "tok.kind.among(";
         bool first = true;
         foreach (t; set)
         {
@@ -206,7 +237,10 @@ in(set !is null)
 
 string tokenName(string s)
 {
-    return "TokenKind." ~ mapToken(s);
+    if (generateCPP)
+        return "tok::" ~ mapToken(s);
+    else
+        return "TokenKind." ~ mapToken(s);
 }
 
 string mapToken(string s)

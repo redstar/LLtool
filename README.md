@@ -6,7 +6,8 @@ A recursive-descent parser generator for D
 ## Purpose
 
 LLtool generates the body of a parser from a context free grammar written in EBNF.
-The generated code fragment can be mixed into D source.
+The generated code fragment can be mixed into D source. Experimental addition is
+the generation of C++ code.
 
 ## Interface
 
