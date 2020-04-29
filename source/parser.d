@@ -15,7 +15,7 @@ module parser;
 import diagnostics;
 import grammar;
 import lexer; // TODO remove
-import std.algorithm.comparison : castSwitch;
+import std.algorithm.comparison : among, castSwitch;
 import std.range : isInputRange, ElementType;
 import std.traits;
 
