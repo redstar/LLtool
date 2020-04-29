@@ -150,7 +150,9 @@ repeat:
             case '<':
                 return argument();
             case '{':
-                return code();
+                if (cur+1 < data.length && data[cur+1] == '.')
+                    return code();
+                goto default;
             static foreach (c; [CASE('=', TokenKind.Equal), CASE(',', TokenKind.Comma),
                                 CASE(':', TokenKind.Colon), CASE(';', TokenKind.Semi),
                                 CASE('|', TokenKind.Pipe), CASE('(', TokenKind.LeftParenthesis)])
@@ -258,7 +260,7 @@ repeat:
             ++cur;
         }
         while (cur < data.length && data[cur] != '}');
-        if (cur == data.length || data[cur] != '}')
+        if (cur >= data.length || data[cur] != '}')
             error(data, pos, cur-pos, "Unterminated code");
         else
             ++cur;
