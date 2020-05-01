@@ -1,7 +1,7 @@
 [![Build status](https://img.shields.io/travis/redstar/LLtool/master.svg?logo=travis&label=Travis%20CI)][1]
 
 # LLtool
-A recursive-descent parser generator for D
+A recursive-descent parser generator for D.
 
 ## Purpose
 
@@ -116,6 +116,20 @@ Here the flag `isV2` is used as predicate:
 A predicate can be inserted at the beginning of an optional group or at the
 beginning of an sequence in case the sequence itself can derive epsilon or is
 embedded in an optional group.
+
+Another approach to solving this task is to deliberately create an LL (1)
+conflict and then use a resolver:
+
+    %token id
+    %start import
+    %%
+    import :
+      "import" ( %if {. isAlias() && isV2 .} id ":=" id
+               | id
+               ) ;
+
+LLtools checks if resolver and predicates are placed correctly. Incorrectly
+placed resolvers and predicates are ignored and a warning is printed.
 
 ## Open tasks
 
