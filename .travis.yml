@@ -7,7 +7,6 @@ arch:
 
 d:
   - ldc
-  - gdc
 
 addons:
   apt:
@@ -15,6 +14,7 @@ addons:
       - python3
       - python3-pip
       - llvm-dev
+      - gdc
 
 before_install:
   - python3 -m pip install --upgrade pip setuptools wheel
@@ -25,6 +25,7 @@ install:
   - pip3 install --user lit
   - python3 -c "import lit; lit.main();" --version . | head -n 1
   - llvm-config --version
+  - gdc --version
 
 script:
   - make LLtool
