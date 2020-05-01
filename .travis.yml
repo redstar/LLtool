@@ -1,6 +1,5 @@
-dist: xenial
+dist: bionic
 language: d
-sudo: false
 
 d: ldc
 
