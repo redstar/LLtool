@@ -1,4 +1,4 @@
-// RUN: LLtool -w %s 2>&1 | FileCheck %s
+// RUN: LLtool -w %s 2>&1 | FileCheck -dump-input-on-failure %s
 %start S
 %%
 A : "a" ;

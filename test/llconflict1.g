@@ -1,4 +1,4 @@
-// RUN: LLtool -w %s 2>&1 | FileCheck %s
+// RUN: LLtool -w %s 2>&1 | FileCheck -dump-input-on-failure %s
 
 // See https://en.wikipedia.org/wiki/LL_parser#Conflicts
 

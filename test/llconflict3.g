@@ -1,4 +1,4 @@
-// RUN: LLtool -w %s 2>&1 | FileCheck %s
+// RUN: LLtool -w %s 2>&1 | FileCheck -dump-input-on-failure %s
 %token a, b, c, d
 %%
 A : (a | B C d) ;
