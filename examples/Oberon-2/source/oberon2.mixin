@@ -28,7 +28,7 @@ void parseImportList() {
 
 void parseImport() {
     string aliasName; size_t aliasPos;
-    if (isAlias()) {
+    if (tok.kind == TokenKind.Ident && (isAlias())) {
         aliasName = tok.val; aliasPos = tok.pos;
         advance();
         consume(TokenKind.ColonEqual);
@@ -63,7 +63,7 @@ void parseDeclSeq() {
         }
     }
     while (tok.kind == TokenKind.KW_PROCEDURE) {
-        if (isProcDecl()) {
+        if (tok.kind == TokenKind.KW_PROCEDURE && (isProcDecl())) {
             parseProcDecl();
             consume(TokenKind.Semi);
         }
@@ -512,7 +512,7 @@ void parseMulOp() {
 
 void parseDesignator() {
     parseQualident();
-    while (!isProcCall()) {
+    while (tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Period, TokenKind.LeftSquare, TokenKind.Caret) && (!isProcCall())) {
         if (tok.kind == TokenKind.Period) {
             advance();
             consume(TokenKind.Ident);
@@ -550,7 +550,7 @@ void parseIdentList() {
 }
 
 void parseQualident() {
-    if (isModule()) {
+    if (tok.kind == TokenKind.Ident && (isModule())) {
         advance();
         consume(TokenKind.Period);
     }
