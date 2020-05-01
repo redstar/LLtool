@@ -41,9 +41,21 @@ void checkGrammar(const(char)[] buffer, Grammar grammar)
  */
 void checkLL(const(char)[] buffer, Grammar grammar)
 {
-    static bool isResolver(Node n)
+    static bool isCondition(Node n)
     {
-        return n !is null && n.type == NodeType.Code && n.isResolver;
+        return n !is null && n.type == NodeType.Code && n.codeType == CodeType.Condition;
+    }
+
+    static void makePredicate(Node n)
+    {
+        assert(isCondition(n), "Node must be of type code with condition");
+        n.codeType = CodeType.Predicate;
+    }
+
+    static void makeResolver(Node n)
+    {
+        assert(isCondition(n), "Node must be of type code with condition");
+        n.codeType =CodeType.Resolver;
     }
 
     void checkGroup(Node node)
@@ -53,8 +65,8 @@ void checkLL(const(char)[] buffer, Grammar grammar)
             if (node.link.derivesEpsilon || setIntersection(node.link.firstSet[], node.followSet[]).count > 0)
             {
                 node.link.hasConflict = true;
-                if (isResolver(node.link.inner))
-                    node.link.inner.isValidResolver = true;
+                if (isCondition(node.link.inner))
+                    makeResolver(node.link.inner);
                 else
                 {
                     if (node.link.derivesEpsilon)
@@ -62,6 +74,12 @@ void checkLL(const(char)[] buffer, Grammar grammar)
                     else
                         warning(buffer, node.pos, "LL conflict in %s: same start and sucessor of deletable element", symbolOf(node).name);
                 }
+            }
+            else if (isCondition(node.link.inner))
+            {
+                // The group is optional but there is no conflict.
+                // Turn resolver into predicate.
+                makePredicate(node.link.inner);
             }
         }
     }
@@ -102,8 +120,8 @@ conflict:
                 if (setIntersection(a[], b[]).count > 0)
                 {
                     ni.hasConflict = true;
-                    if (isResolver(ni.inner))
-                        ni.inner.isValidResolver = true;
+                    if (isCondition(ni.inner))
+                        makeResolver(ni.inner);
                     else
                     {
                         warning(buffer, ni.pos, "LL conflict in %s: same start of several alternatives", symbolOf(ni).name);
@@ -114,17 +132,32 @@ conflict:
         }
     }
 
+    void checkAlternativeForPredicate(Node node)
+    {
+        bool parentEps = (node.back !is null && node.back.derivesEpsilon);
+        foreach (n; NodeLinkRange(node.link))
+        {
+            if ((parentEps || n.derivesEpsilon) && !n.hasConflict &&
+                isCondition(n.inner)) {
+                makePredicate(n.inner);
+            }
+        }
+    }
+
 	foreach (node; filter!(n => n.type.among!(NodeType.Alternative, NodeType.Group))(grammar.nodes))
     {
         if (node.type == NodeType.Group)
             checkGroup(node);
         else if (node.type == NodeType.Alternative)
+        {
             checkAlternative(node);
+            checkAlternativeForPredicate(node);
+        }
     }
 
 	foreach (node; filter!(n => n.type == NodeType.Code)(grammar.nodes))
     {
-        if (node.isResolver && !node.isValidResolver)
-            error(buffer, node.pos, "No LL conflict in %s: misplaced resolver", symbolOf(node).name);
+        if (isCondition(node))
+            warning(buffer, node.pos, "No LL conflict in %s: misplaced resolver", symbolOf(node).name);
     }
 }

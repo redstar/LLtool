@@ -61,7 +61,7 @@ sequence<out Node node>
         )?
       | string                          {. n = builder.symbol(tok.pos, tok.val, true); .}
       | code                            {. n = builder.code(tok.pos, tok.val); .}
-      | "%if" code                      {. n = builder.code(tok.pos, tok.val); n.isResolver = true; .}
+      | "%if" code                      {. n = builder.code(tok.pos, tok.val); n.codeType = CodeType.Condition; .}
       )
                                         {. if (last is null) node.inner = last = n;
                                            else last.next = n, last = n; .}
@@ -76,9 +76,5 @@ group<out Node node>
       | ")?"                            {. node.cardinality = Cardinality.ZeroOrOne; .}
       | ")*"                            {. node.cardinality = Cardinality.ZeroOrMore; .}
       | ")+"                            {. node.cardinality = Cardinality.OneOrMore; .}
-      | ")!" code                       {. node.cardinality = Cardinality.ZeroOrOne;
-                                           node.isPredicate = true;
-                                           node.predicate = tok.val;
-                                        .}
     )
   ;

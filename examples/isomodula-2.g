@@ -3,6 +3,14 @@
  * Includes ISO/IEC 10514-2 (generics) and 10514-3 (OO layer).
  * See https://www.arjay.bc.ca/Modula-2/Text/Appendices/Ap3.html
  *
+ * The following expressions are used in predicates:
+ * - getLangOpts().ISOGenerics is true iff language level is ISO/IEC 10514-2
+ * - getLangOpts().ISOObjects is true iff language level is ISO/IEC 10514-3
+ *
+ * Assumption is that the lexer classifies identifiers as keywords according
+ * to the supported language. E.g. "GENERIC" is only a keyword if the language
+ * level is ISO/IEC 10514-2 and otherwise it's an identifier.
+ *
  * The following changes were made:
  * - For symbols with alternative representations, it is expected that the lexer
  *   only returns the main representation. This is the list of tokens:
@@ -16,33 +24,61 @@
  *   "|": "!"
  *
  * Resolved LL(1) conflicts:
+ * - Various changes to compilationModule:
+ *   - Moved "UNSAFEGUARDED" and "GENERIC" into this rule.
+ *   - Passes flag if "UNSAFEGUARDED" has bin parsed.
+ * - Integrate refiningDefinitionModule into definitionModule.
+ * - Integrate refiningimplementationModule into implementationModule.
  * - Between properProcedureType and functionProcedureType.
  *   Integrated into procedureType using a predicate.
+ * - Moved "TRACED" from normalTracedClassDeclaration and
+ *   abstractTracedClassDeclaration into tracedClassDeclaration.
+ *
+ * To enable predicates:
+ * - Moved symbol definition into single parent rule definitions.
+ * - Moved symbol declaration into single parent rule declarations.
  */
 %token identifier, integer_literal, char_literal, real_literal, string_literal
 %start compilationModule
 %%
-compilationModule :                     {. bool IsGeneric = false, IsObjects = false; .}
-   (programModule | definitionModule | implementationModule |
-   (genericDefinitionModule /*Generics*/ | genericImplementationModule /*Generics*/ |
-   refiningDefinitionModule /*Generics*/ | refiningImplementationModule /*Generics*/ )!
-   {.getLangOpts().ISOGenerics.} )
+compilationModule :
+  "UNSAFEGUARDED"
+    ( programModule<true>
+    | definitionModule<true>
+    | implementationModule<true>
+   )
+  | "GENERIC"
+    ( genericDefinitionModule
+    | genericImplementationModule
+    )
+  | programModule<false>
+  | definitionModule<false>
+  | implementationModule<false>
    ;
-programModule :
-   ("UNSAFEGUARDED")! {.getLangOpts().ISOObjects.} "MODULE" moduleIdentifier (protection)? ";"
-   importLists moduleBlock moduleIdentifier "." ;
+programModule<bool HasUnsafeGuarded> :
+   "MODULE" moduleIdentifier (protection)? ";"
+  importLists moduleBlock moduleIdentifier "."
+  ;
 moduleIdentifier :
    identifier ;
 protection :
    "[" protectionExpression "]" ;
 protectionExpression :
    constantExpression ;
-definitionModule :
-   ("UNSAFEGUARDED")! {.getLangOpts().ISOObjects.} "DEFINITION" "MODULE" moduleIdentifier ";"
-   importLists definitions "END" moduleIdentifier "." ;
-implementationModule :
-   ("UNSAFEGUARDED")! {.getLangOpts().ISOObjects.} "IMPLEMENTATION" "MODULE" moduleIdentifier (protection)?
-   ";" importLists moduleBlock moduleIdentifier "." ;
+definitionModule<bool HasUnsafeGuarded> :
+  "DEFINITION" "MODULE" moduleIdentifier
+  ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningDefinitionModule*/
+    "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";"
+  | importLists definitions /* definitionModule*/
+  )
+  "END" moduleIdentifier "." ;
+implementationModule<bool HasUnsafeGuarded> :
+  "IMPLEMENTATION" "MODULE" moduleIdentifier
+  ( %if {.!HasUnsafeGuarded && getLangOpts().ISOGenerics.} /* refiningImplementationModule */
+    "=" genericSeparateModuleIdentifier (actualModuleParameters)? ";" "END"
+  | (protection)? ";" importLists moduleBlock /* implementationModule */
+  )
+  moduleIdentifier "." ;
 importLists :
    ( importList )* ;
 importList :
@@ -58,21 +94,21 @@ unqualifiedExport :
 qualifiedExport :
    "EXPORT" "QUALIFIED" identifierList ";" ;
 qualifiedIdentifier :
-   (moduleIdentifier ".")* (classIdentifier)! {.getLangOpts().ISOObjects.} identifier ;
+   (moduleIdentifier ".")* (%if {.getLangOpts().ISOObjects.} classIdentifier)? identifier ;
 /* Generics start */
 genericDefinitionModule :
-   "GENERIC" "DEFINITION" "MODULE" moduleIdentifier (formalModuleParameters)?
+   /*"GENERIC"*/ "DEFINITION" "MODULE" moduleIdentifier (formalModuleParameters)?
    ";" importLists definitions "END" moduleIdentifier "." ;
 genericImplementationModule :
-   "GENERIC" "IMPLEMENTATION" "MODULE" moduleIdentifier (protection)?
+   /*"GENERIC"*/ "IMPLEMENTATION" "MODULE" moduleIdentifier (protection)?
    (formalModuleParameters)? ";" importLists moduleBlock moduleIdentifier "." ;
-refiningDefinitionModule :
+/*refiningDefinitionModule :
    "DEFINITION" "MODULE" moduleIdentifier "=" genericSeparateModuleIdentifier
-   (actualModuleParameters)? ";" "END" moduleIdentifier "." ;
+   (actualModuleParameters)? ";" "END" moduleIdentifier "." ;*/
 genericSeparateModuleIdentifier : identifier;
-refiningImplementationModule :
+/*refiningImplementationModule :
    "IMPLEMENTATION" "MODULE" moduleIdentifier "=" genericSeparateModuleIdentifier
-   (actualModuleParameters)? ";" "END" moduleIdentifier "." ;
+   (actualModuleParameters)? ";" "END" moduleIdentifier "." ; */
 formalModuleParameters :
    "(" formalModuleParameterList ")" ;
 formalModuleParameterList :
@@ -94,13 +130,12 @@ actualModuleParameter :
   constantExpression | typeParameter ;
 /* Generics end */
 definitions :
-   (definition)* ;
-definition :
-   "CONST" (constantDeclaration ";")* |
-   "TYPE" (typeDefinition ";")* |
-   "VAR" (variableDeclaration ";")* |
-   procedureHeading ";" |
-   (classDefinition ";")! {.getLangOpts().ISOObjects.} ;
+  ( "CONST" (constantDeclaration ";")*
+  | "TYPE" (typeDefinition ";")*
+  | "VAR" (variableDeclaration ";")*
+  | procedureHeading ";"
+  | %if {.getLangOpts().ISOObjects.} classDefinition ";"
+   )* ;
 procedureHeading :
    properProcedureHeading | functionProcedureHeading ;
 typeDefinition :
@@ -125,14 +160,14 @@ valueParameterSpecification :
 variableParameterSpecification :
    "VAR" identifierList ":" formalType ;
 declarations :
-   (declaration)* ;
-declaration :
+   (
    "CONST" (constantDeclaration ";")* |
    "TYPE" (typeDeclaration ";")* |
    "VAR" (variableDeclaration ";")* |
    procedureDeclaration ";" |
-   (classDeclaration ";")! {.getLangOpts().ISOObjects.} |
-   localModuleDeclaration ";" ;
+   %if {.getLangOpts().ISOObjects.} classDeclaration ";"  |
+   localModuleDeclaration ";"
+   )* ;
 constantDeclaration :
    identifier "=" constantExpression ;
 typeDeclaration :
@@ -203,7 +238,7 @@ functionProcedureType :
  */
 procedureType :                         {. bool HasParen = false; .}
    "PROCEDURE" ( "(" {. HasParen = true.} (formalParameterTypeList)? ")")?
-   (":" functionResultType)! {. HasParen .} ;
+   (%if {. HasParen .} ":" functionResultType)?  ;
 formalParameterTypeList :
    formalParameterType ("," formalParameterType)* ;
 formalParameterType :
@@ -276,7 +311,7 @@ statement :
     returnStatement |retryStatement | withStatement |
     ifStatement | caseStatement | whileStatement |
     repeatStatement | loopStatement | exitStatement | forStatement |
-    (guardStatement)! {.getLangOpts().ISOObjects.};
+    %if {.getLangOpts().ISOObjects.} guardStatement ;
 statementSequence :
    statement (";" statement)* ;
 emptyStatement :
@@ -346,7 +381,7 @@ stepSize :
 variableDesignator :
    entireDesignator | indexedDesignator |
    selectedDesignator | dereferencedDesignator |
-   (objectSelectedDesignator)! {.getLangOpts().ISOObjects.} ;
+   %if {.getLangOpts().ISOObjects.} objectSelectedDesignator  ;
 entireDesignator :
    qualifiedIdentifier ;
 indexedDesignator :
@@ -393,7 +428,7 @@ inequalityOperator : "<>" | "#" ;
 logicalConjunctionOperator : "AND" | "&";
 valueDesignator :
   entireValue | indexedValue | selectedValue | dereferencedValue |
-  (objectSelectedValue)! {.getLangOpts().ISOObjects.};
+  %if {.getLangOpts().ISOObjects.} objectSelectedValue ;
 entireValue :
    qualifiedIdentifier ;
 indexedValue :
@@ -549,18 +584,18 @@ abstractMethodDeclarations :
    normalMethodDeclaration | abstractMethodDefinition |
    overridingMethodDeclaration;
 tracedClassDeclaration :
-   ( normalTracedClassDeclaration | abstractTracedClassDeclaration ) ;
+   "TRACED" ( normalTracedClassDeclaration | abstractTracedClassDeclaration ) ;
 normalTracedClassDeclaration :
    normalTracedClassHeader ( normalTracedClassDeclarationBody | "FORWARD" ) ;
 normalTracedClassHeader :
-   "TRACED" "CLASS" classIdentifier ";" ;
+   "CLASS" classIdentifier ";" ;
 normalTracedClassDeclarationBody :
    ( inheritClause )? ( revealList )? normalClassComponentDeclarations
    ( tracedClassBody )? "END" classIdentifier ;
 abstractTracedClassDeclaration :
    abstractTracedClassHeader ( abstractTracedClassDeclarationBody | "FORWARD" ) ;
 abstractTracedClassHeader :
-   "TRACED" "ABSTRACT" "CLASS" classIdentifier ";" ;
+   "ABSTRACT" "CLASS" classIdentifier ";" ;
 abstractTracedClassDeclarationBody :
    ( inheritClause )? ( revealList )? abstractClassComponentDeclarations
    ( tracedClassBody )? "END" classIdentifier ;

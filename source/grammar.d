@@ -284,6 +284,14 @@ enum Cardinality
     ZeroOrMore
 }
 
+enum CodeType
+{
+    Normal,
+    Condition,
+    Resolver,
+    Predicate,
+}
+
 alias Node = NodeStruct*;
 
 struct NodeStruct
@@ -326,14 +334,8 @@ public:
     // True if there is a LL(1) conflict
     bool hasConflict;
 
-    // True if code is predicate
-    bool isPredicate;
-
-    // True if code is resolver
-    bool isResolver;
-
-    // True if code is resolver and correctly placed
-    bool isValidResolver;
+    // Kind of condition
+    CodeType codeType;
 
     // FIRST and FOLLOW sets
     TerminalSet firstSet;
@@ -481,14 +483,14 @@ public:
     @property
     string predicate()
     {
-        assert(type == NodeType.Group && isPredicate);
+        assert(type == NodeType.Group && codeType == CodeType.Predicate);
         return text;
     }
 
     @property
     string predicate(string src)
     {
-        assert(type == NodeType.Group && isPredicate);
+        assert(type == NodeType.Group && codeType == CodeType.Predicate);
         return this.text = src;
     }
 }

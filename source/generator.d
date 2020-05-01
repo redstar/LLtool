@@ -81,10 +81,7 @@ in(node.type == NodeType.Group)
             formattedWrite(sink, "%s} while (%s);\n", ws, condition!false(node.link));
             break;
         case Cardinality.ZeroOrOne:
-            if (node.isPredicate)
-                formattedWrite(sink, "%sif (%s && %s) {\n", ws, condition!false(node.link), node.predicate);
-            else
-                formattedWrite(sink, "%sif (%s) {\n", ws, condition!false(node.link));
+            formattedWrite(sink, "%sif (%s) {\n", ws, condition!false(node.link));
             generateAlternativeOrSequence(sink, indent+1, node.link, true);
             formattedWrite(sink, "%s}\n", ws);
             break;
@@ -152,7 +149,10 @@ in(node.type == NodeType.Sequence)
                 generateCode(sink, indent, n);
                 break;
         }
-        startOfCondition = false;
+        if (startOfCondition)
+            // Set startOfCondition to false if anything other than
+            //  code  was emitted.
+            startOfCondition = n.type == NodeType.Code;
     }
     if (genAdvance)
     {
@@ -182,7 +182,7 @@ in(node.type == NodeType.Symbol)
 void generateCode(R)(R sink, const size_t indent, Node node)  if (isOutputRange!(R, string))
 in(node.type == NodeType.Code)
 {
-    if (!node.isResolver)
+    if (!(node.codeType.among(CodeType.Resolver, CodeType.Predicate)))
     {
         const ws = whitespace(indent);
         formattedWrite(sink, "%s%s\n", ws, node.code);
@@ -192,9 +192,12 @@ in(node.type == NodeType.Code)
 string condition(bool isFiFo)(Node n)
 {
     if (n.hasConflict && n.inner !is null && n.inner.type == NodeType.Code &&
-        n.inner.isResolver)
+        n.inner.codeType == CodeType.Resolver)
         return n.inner.code;
-    return isFiFo ? fifocondition(n) : condition(n.firstSet);
+    string cond = isFiFo ? fifocondition(n) : condition(n.firstSet);
+    if (n.inner !is null && n.inner.type == NodeType.Code && n.inner.codeType == CodeType.Predicate)
+      cond ~= " && (" ~ n.inner.code ~ ")";
+    return cond;
 }
 
 string fifocondition(Node n)

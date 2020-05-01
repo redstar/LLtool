@@ -56,6 +56,67 @@ Single-line comments start with `//` and run until the end of line.
 Multi-line comments use `/*` and `*/` as delimiters. Multi-line comments may not
 be nested.
 
+## Influencing the parsing process
+
+Consider the following example which is a simple version of a `import` statement
+with the possibility to use an alias:
+
+    %token id
+    %start import
+    %%
+    import :
+      "import" (id ":=")? id;
+
+Because the optional group `(id "=")?` begins with the same token as the symbol
+after it (both are `id`), the parser generator can't decide if parsing must
+continue with the optional group or with the symbol after the group  if the next
+token is `id`. This is an example of an LL(1) conflict. To solve this conflict
+it is possible to insert a resolver. A resolver is a `bool` expression, e.g.
+`bool isAlias()`. The resolver is inserted at the place of the LL(1) conflict:
+
+    %token id
+    %start import
+    %%
+    import :
+      "import" (%if {. isAlias() .} id ":=")? id;
+
+In this case the implementation of the resolver is trivial. It only has to look
+one token further in the token range:
+
+    bool isAlias()
+    {
+        // LL(1) conflict can be resolved with a look ahead of two
+        return lexer.save.moveFront.kind == TokenKind.ColonEqual;
+    }
+
+Other LL(1) conflicts can be solved in a similar way. The resolver can be as
+complex as required, as long as a `bool` value is returned.
+
+Now consider that the language has evolved over time. The original version did
+not support the alias name. That was later introduced in version 2. To support
+both versions, the grammar now look like:
+
+    %token id
+    %start import
+    %%
+    import :
+      "import" id (":=" id)?;
+
+This rule can parse an import with or without an alias name. To support both
+language versions with one parser, you can add a predicate to differentiate
+between both versions. Like a resolver a predicate must return a `bool` value.
+Here the flag `isV2` is used as predicate:
+
+    %token id
+    %start import
+    %%
+    import :
+      "import" id (%if {. isV2 .} ":=" id)?;
+
+A predicate can be inserted at the beginning of an optional group or at the
+beginning of an sequence in case the sequence itself can derive epsilon or is
+embedded in an optional group.
+
 ## Open tasks
 
 - Support parser generation at compile time
