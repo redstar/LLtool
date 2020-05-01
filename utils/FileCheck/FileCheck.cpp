@@ -21,7 +21,12 @@
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/Support/CommandLine.h"
+#if LLVM_VERSION_MAJOR >= 7
 #include "llvm/Support/InitLLVM.h"
+#else
+#include "llvm/Support/PrettyStackTrace.h"
+#include "llvm/Support/Signals.h"
+#endif
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Support/SourceMgr.h"
@@ -1542,7 +1547,12 @@ bool CheckInput(SourceMgr &SM, StringRef Buffer,
 }
 
 int main(int argc, char **argv) {
+#if LLVM_VERSION_MAJOR >= 7
   InitLLVM X(argc, argv);
+#else
+  sys::PrintStackTraceOnErrorSignal(argv[0]);
+  PrettyStackTraceProgram X(argc, argv);
+#endif
   cl::ParseCommandLineOptions(argc, argv);
 
   if (!ValidateCheckPrefixes()) {
