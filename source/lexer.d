@@ -36,7 +36,6 @@ enum TokenKind : uint
     RightParenthesisQuestion,
     RightParenthesisStar,
     RightParenthesisPlus,
-    RightParenthesisExclaim,
     PercentPercent,
     KW_eoi,
     KW_if,
@@ -68,7 +67,6 @@ string displayName(TokenKind kind)
         case TokenKind.RightParenthesisQuestion: return ")?";
         case TokenKind.RightParenthesisStar: return ")*";
         case TokenKind.RightParenthesisPlus: return ")+";
-        case TokenKind.RightParenthesisExclaim: return ")!";
         case TokenKind.PercentPercent: return "%%";
         case TokenKind.KW_eoi: return "%eoi";
         case TokenKind.KW_if: return "%sif";
@@ -175,9 +173,6 @@ repeat:
                         case '+':
                             cur += 2;
                             return Token(TokenKind.RightParenthesisPlus, cur-2, 2, ")+");
-                        case '!':
-                            cur += 2;
-                            return Token(TokenKind.RightParenthesisExclaim, cur-2, 2, ")!");
                         default:
                             break;
                     }
@@ -341,7 +336,7 @@ unittest
     checkToken("'str'", TokenKind.String, "'str'");
     checkToken("<arg>", TokenKind.Argument, "arg");
     checkToken("<.arg.>", TokenKind.Argument, "arg");
-    checkToken("{. code .}", TokenKind.Code, " code ");
+    checkToken("{. code .}", TokenKind.Code, "code");
     checkToken("=", TokenKind.Equal, "=");
     checkToken(":", TokenKind.Colon, ":");
     checkToken(";", TokenKind.Semi, ";");
