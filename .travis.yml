@@ -7,14 +7,15 @@ arch:
 
 d:
   - ldc
+  - gdc
 
 addons:
   apt:
     packages:
       - python3
       - python3-pip
-      - llvm-dev
-      - gdc
+      - llvm-9-dev
+      #- gdc
 
 before_install:
   - python3 -m pip install --upgrade pip setuptools wheel
