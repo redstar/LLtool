@@ -1,3 +1,4 @@
+
 void parseModule() {
     consume(TokenKind.KW_MODULE);
     consume(TokenKind.Ident);
@@ -26,15 +27,14 @@ void parseImportList() {
 }
 
 void parseImport() {
-     string aliasName; size_t aliasPos; 
-    if ( isAlias() ) {
-        expect(TokenKind.Ident);
-         aliasName = tok.val; aliasPos = tok.pos; 
+    string aliasName; size_t aliasPos;
+    if (isAlias()) {
+        aliasName = tok.val; aliasPos = tok.pos;
         advance();
         consume(TokenKind.ColonEqual);
     }
     expect(TokenKind.Ident);
-     addImport(tok.pos, tok.val, aliasPos, aliasName); 
+    addImport(tok.pos, tok.val, aliasPos, aliasName);
     advance();
 }
 
@@ -63,7 +63,7 @@ void parseDeclSeq() {
         }
     }
     while (tok.kind == TokenKind.KW_PROCEDURE) {
-        if ( isProcDecl() ) {
+        if (isProcDecl()) {
             parseProcDecl();
             consume(TokenKind.Semi);
         }
@@ -512,7 +512,7 @@ void parseMulOp() {
 
 void parseDesignator() {
     parseQualident();
-    while ( !isProcCall() ) {
+    while (!isProcCall()) {
         if (tok.kind == TokenKind.Period) {
             advance();
             consume(TokenKind.Ident);
@@ -550,8 +550,8 @@ void parseIdentList() {
 }
 
 void parseQualident() {
-    if ( isModule() ) {
-        consume(TokenKind.Ident);
+    if (isModule()) {
+        advance();
         consume(TokenKind.Period);
     }
     consume(TokenKind.Ident);
