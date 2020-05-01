@@ -1,7 +1,7 @@
 all: LLtool FileCheck
 
 LLtool::
-	dub build --build=unittest
+	dub build
 
 FileCheck: utils/FileCheck/FileCheck.cpp
 	clang++ $(shell llvm-config --cxxflags) -o FileCheck utils/FileCheck/FileCheck.cpp $(shell llvm-config --ldflags) $(shell llvm-config --libs support) $(llvm-config --system-libs) -lpthread
