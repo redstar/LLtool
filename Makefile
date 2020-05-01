@@ -4,7 +4,7 @@ LLtool::
 	dub build
 
 FileCheck: utils/FileCheck/FileCheck.cpp
-	clang++ $(shell llvm-config --cxxflags) -o FileCheck utils/FileCheck/FileCheck.cpp $(shell llvm-config --ldflags) $(shell llvm-config --libs support) $(llvm-config --system-libs) -lpthread
+	clang++ $(shell llvm-config-8 --cxxflags) -o FileCheck utils/FileCheck/FileCheck.cpp $(shell llvm-config-8 --ldflags) $(shell llvm-config-8 --libs support) $(llvm-config-8 --system-libs) -lpthread
 
 examples::
 	cd examples/Oberon-2 && dub build

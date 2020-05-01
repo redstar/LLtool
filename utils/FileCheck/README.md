@@ -1,1 +1,1 @@
-FileCheck is copied from LLVM 7 and backported to LLVM 6.
+FileCheck is copied from LLVM 8.
