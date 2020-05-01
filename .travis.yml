@@ -5,7 +5,9 @@ arch:
   - amd64
   - arm64
 
-d: ldc
+d:
+  - ldc
+  - gdc
 
 addons:
   apt:
