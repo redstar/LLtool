@@ -1,6 +1,6 @@
 
 void parseLltool() {
-    if (tok.kind.among(TokenKind.PercentPercent, TokenKind.Percenteoi, TokenKind.Percentstart, TokenKind.Percenttoken)) {
+    if (tok.kind.among(TokenKind.PercentPercent, TokenKind.KW_eoi, TokenKind.KW_start, TokenKind.KW_token)) {
         parseHeader();
     }
     do {
@@ -13,19 +13,19 @@ _error:
 }
 
 void parseHeader() {
-    while (tok.kind.among(TokenKind.Percenteoi, TokenKind.Percentstart, TokenKind.Percenttoken)) {
-        if (tok.kind == TokenKind.Percentstart) {
+    while (tok.kind.among(TokenKind.KW_eoi, TokenKind.KW_start, TokenKind.KW_token)) {
+        if (tok.kind == TokenKind.KW_start) {
             advance();
             if (expect(TokenKind.Identifier))
                 goto _error;
             builder.startSymbol(tok.pos, tok.val);
             advance();
         }
-        else if (tok.kind == TokenKind.Percenttoken) {
+        else if (tok.kind == TokenKind.KW_token) {
             advance();
             parseTokenlist();
         }
-        else if (tok.kind == TokenKind.Percenteoi) {
+        else if (tok.kind == TokenKind.KW_eoi) {
             advance();
             if (expect(TokenKind.Identifier))
                 goto _error;
@@ -130,7 +130,7 @@ _error:
 
 void parseSequence(out Node node) {
     Node last; node = builder.sequence(tok.pos);
-    while (tok.kind.among(TokenKind.Percentif, TokenKind.LeftParenthesis, TokenKind.Code, TokenKind.Identifier, TokenKind.String)) {
+    while (tok.kind.among(TokenKind.KW_if, TokenKind.LeftParenthesis, TokenKind.Code, TokenKind.Identifier, TokenKind.String)) {
         Node n;
         if (tok.kind == TokenKind.LeftParenthesis) {
             parseGroup(n);
@@ -151,7 +151,7 @@ void parseSequence(out Node node) {
             n = builder.code(tok.pos, tok.val);
             advance();
         }
-        else if (tok.kind == TokenKind.Percentif) {
+        else if (tok.kind == TokenKind.KW_if) {
             advance();
             if (expect(TokenKind.Code))
                 goto _error;
@@ -192,6 +192,6 @@ void parseGroup(out Node node) {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Percentif, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe, TokenKind.Code, TokenKind.Identifier, TokenKind.String))
+    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.KW_if, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe, TokenKind.Code, TokenKind.Identifier, TokenKind.String))
         advance();
 }

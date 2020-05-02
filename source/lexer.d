@@ -41,10 +41,6 @@ enum TokenKind : uint
     KW_if,
     KW_start,
     KW_token,
-    Percenteoi = KW_eoi,
-    Percentif = KW_if,
-    Percentstart = KW_start,
-    Percenttoken = KW_token,
     _eoi,
     Unknown,
 }

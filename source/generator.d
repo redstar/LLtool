@@ -17,8 +17,7 @@ import std.range : isOutputRange;
 
 void generate(R)(R sink, Grammar grammar, bool wantCPP, string cppClassname) if (isOutputRange!(R, string))
 {
-    dstring[dstring] mapAdditions; // TODO Should come from input file
-    const Fragment frag = getFragment(wantCPP, cppClassname, mapAdditions);
+    const Fragment frag = getFragment(wantCPP, cppClassname, findExternalNames(grammar));
     if (wantCPP)
     {
         formattedWrite(sink, "#ifdef %s\n", frag.guardDeclaration);
@@ -452,4 +451,22 @@ Fragment getFragment(bool cpp, string cppclass, dstring[dstring] add)
       };
        return res;
     }
+}
+
+dstring[dstring] findExternalNames(Grammar grammar)
+{
+    import std.algorithm : filter;
+    import std.utf : toUTF32;
+
+    dstring[dstring] map;
+	foreach (node; filter!(n => n.type == NodeType.Terminal)(grammar.nodes))
+    {
+        if (node.externalName.length)
+        {
+            // Remove " from string.
+            string name = node.name[1..$-1];
+            map[name.toUTF32] = node.externalName.toUTF32;
+        }
+    }
+    return map;
 }
