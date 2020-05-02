@@ -473,11 +473,11 @@ dstring[dstring] findExternalNames(Grammar grammar)
     import std.algorithm : filter;
     import std.utf : toUTF32;
 
-    immutable string eoi = grammar.eoiTerminal.name;
+    const Node eoi = grammar.eoiTerminal;
     dstring[dstring] map;
 	foreach (node; filter!(n => n.type == NodeType.Terminal)(grammar.nodes))
     {
-        if (node.externalName.length && node.name != eoi)
+        if (node.externalName.length && node != eoi)
         {
             // Remove " from string.
             string name = node.name[1..$-1];
