@@ -101,7 +101,7 @@ struct GrammarBuilder
         // nodes[2].name = nodes[5].name;
         if (hasErrors) // Bail out if there was a syntax error
             return Grammar();
-        auto eoiTerminal = terminal(0, eoiName.length ? eoiName : "_eoi");
+        auto eoiTerminal = terminal(0, "_eoi", eoiName);
         eoiTerminal.isReachable = true;
         resolve();
         if (hasErrors) // Bail out if there was a semantic error

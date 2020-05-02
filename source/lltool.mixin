@@ -8,7 +8,7 @@ void parseLltool() {
     } while (tok.kind == TokenKind.Identifier);
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind._eoi)
+    while (tok.kind != TokenKind.Eoi)
         advance();
 }
 
@@ -37,7 +37,7 @@ void parseHeader() {
         goto _error;
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Identifier)
+    while (!tok.kind.among(TokenKind.Eoi, TokenKind.Identifier))
         advance();
 }
 
@@ -49,7 +49,7 @@ void parseTokenlist() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.PercentPercent)
+    while (!tok.kind.among(TokenKind.PercentPercent, TokenKind.Eoi))
         advance();
 }
 
@@ -73,7 +73,7 @@ void parseTokendecl() {
     builder.terminal(pos, val, ext);
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.PercentPercent, TokenKind.Comma))
+    while (!tok.kind.among(TokenKind.PercentPercent, TokenKind.Comma, TokenKind.Eoi))
         advance();
 }
 
@@ -88,7 +88,7 @@ void parseRule() {
         goto _error;
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind._eoi, TokenKind.Identifier))
+    while (!tok.kind.among(TokenKind.Eoi, TokenKind.Identifier))
         advance();
 }
 
@@ -106,7 +106,7 @@ void parseNonterminal(out Node node) {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Colon)
+    while (!tok.kind.among(TokenKind.Colon, TokenKind.Eoi))
         advance();
 }
 
@@ -124,7 +124,7 @@ void parseRhs(out Node node) {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi))
+    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Eoi))
         advance();
 }
 
@@ -164,7 +164,7 @@ void parseSequence(out Node node) {
     if (last !is null) last.back = node;
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe))
+    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe, TokenKind.Eoi))
         advance();
 }
 
@@ -192,6 +192,6 @@ void parseGroup(out Node node) {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.KW_if, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe, TokenKind.Code, TokenKind.Identifier, TokenKind.String))
+    while (!tok.kind.among(TokenKind.KW_if, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe, TokenKind.Eoi, TokenKind.Code, TokenKind.Identifier, TokenKind.String))
         advance();
 }

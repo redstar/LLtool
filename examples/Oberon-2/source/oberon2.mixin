@@ -22,7 +22,7 @@ void parseModule() {
         goto _error;
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind._eoi)
+    while (tok.kind != TokenKind.Eoi)
         advance();
 }
 
@@ -38,7 +38,7 @@ void parseImportList() {
         goto _error;
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.KW_BEGIN, TokenKind.KW_CONST, TokenKind.KW_END, TokenKind.KW_PROCEDURE, TokenKind.KW_TYPE, TokenKind.KW_VAR))
+    while (!tok.kind.among(TokenKind.KW_BEGIN, TokenKind.KW_CONST, TokenKind.KW_END, TokenKind.KW_PROCEDURE, TokenKind.KW_TYPE, TokenKind.KW_VAR, TokenKind.Eoi))
         advance();
 }
 
@@ -56,7 +56,7 @@ void parseImport() {
     advance();
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Comma, TokenKind.Semi))
+    while (!tok.kind.among(TokenKind.Comma, TokenKind.Semi, TokenKind.Eoi))
         advance();
 }
 
@@ -101,7 +101,7 @@ void parseDeclSeq() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.KW_BEGIN, TokenKind.KW_END))
+    while (!tok.kind.among(TokenKind.KW_BEGIN, TokenKind.KW_END, TokenKind.Eoi))
         advance();
 }
 
@@ -112,7 +112,7 @@ void parseConstDecl() {
     parseConstExpr();
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Semi)
+    while (!tok.kind.among(TokenKind.Semi, TokenKind.Eoi))
         advance();
 }
 
@@ -123,7 +123,7 @@ void parseTypeDecl() {
     parseType();
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Semi)
+    while (!tok.kind.among(TokenKind.Semi, TokenKind.Eoi))
         advance();
 }
 
@@ -134,7 +134,7 @@ void parseVarDecl() {
     parseType();
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Semi)
+    while (!tok.kind.among(TokenKind.Semi, TokenKind.Eoi))
         advance();
 }
 
@@ -161,7 +161,7 @@ void parseProcDecl() {
         goto _error;
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Semi)
+    while (!tok.kind.among(TokenKind.Semi, TokenKind.Eoi))
         advance();
 }
 
@@ -179,7 +179,7 @@ void parseForwardDecl() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Semi)
+    while (!tok.kind.among(TokenKind.Semi, TokenKind.Eoi))
         advance();
 }
 
@@ -201,7 +201,7 @@ void parseFormalPars() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.RightParenthesis, TokenKind.Semi, TokenKind.KW_END))
+    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.Semi, TokenKind.KW_END, TokenKind.Eoi))
         advance();
 }
 
@@ -221,7 +221,7 @@ void parseFPSection() {
     parseType();
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.RightParenthesis, TokenKind.Semi))
+    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.Semi, TokenKind.Eoi))
         advance();
 }
 
@@ -241,7 +241,7 @@ void parseReceiver() {
         goto _error;
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Ident)
+    while (!tok.kind.among(TokenKind.Eoi, TokenKind.Ident))
         advance();
 }
 
@@ -292,7 +292,7 @@ void parseType() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.RightParenthesis, TokenKind.Semi, TokenKind.KW_END))
+    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.Semi, TokenKind.KW_END, TokenKind.Eoi))
         advance();
 }
 
@@ -305,7 +305,7 @@ void parseFieldList() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Semi, TokenKind.KW_END))
+    while (!tok.kind.among(TokenKind.Semi, TokenKind.KW_END, TokenKind.Eoi))
         advance();
 }
 
@@ -317,7 +317,7 @@ void parseStatementSeq() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_UNTIL, TokenKind.Pipe))
+    while (!tok.kind.among(TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_UNTIL, TokenKind.Pipe, TokenKind.Eoi))
         advance();
 }
 
@@ -451,7 +451,7 @@ void parseStatement() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Semi, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_UNTIL, TokenKind.Pipe))
+    while (!tok.kind.among(TokenKind.Semi, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_UNTIL, TokenKind.Pipe, TokenKind.Eoi))
         advance();
 }
 
@@ -468,7 +468,7 @@ void parseCase() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.KW_ELSE, TokenKind.KW_END, TokenKind.Pipe))
+    while (!tok.kind.among(TokenKind.KW_ELSE, TokenKind.KW_END, TokenKind.Pipe, TokenKind.Eoi))
         advance();
 }
 
@@ -480,7 +480,7 @@ void parseCaseLabels() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Comma, TokenKind.Colon))
+    while (!tok.kind.among(TokenKind.Comma, TokenKind.Colon, TokenKind.Eoi))
         advance();
 }
 
@@ -491,7 +491,7 @@ void parseGuard() {
     parseQualident();
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.KW_DO)
+    while (!tok.kind.among(TokenKind.KW_DO, TokenKind.Eoi))
         advance();
 }
 
@@ -499,7 +499,7 @@ void parseConstExpr() {
     parseExpr();
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Comma, TokenKind.Ellipsis, TokenKind.Colon, TokenKind.Semi, TokenKind.KW_DO, TokenKind.KW_OF))
+    while (!tok.kind.among(TokenKind.Comma, TokenKind.Ellipsis, TokenKind.Colon, TokenKind.Semi, TokenKind.KW_DO, TokenKind.KW_OF, TokenKind.Eoi))
         advance();
 }
 
@@ -511,7 +511,7 @@ void parseExpr() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.RightParenthesis, TokenKind.Comma, TokenKind.Ellipsis, TokenKind.Colon, TokenKind.Semi, TokenKind.KW_BY, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_OF, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace))
+    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.Comma, TokenKind.Ellipsis, TokenKind.Colon, TokenKind.Semi, TokenKind.KW_BY, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_OF, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace, TokenKind.Eoi))
         advance();
 }
 
@@ -531,7 +531,7 @@ void parseSimpleExpr() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Hash, TokenKind.RightParenthesis, TokenKind.Comma, TokenKind.Ellipsis, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_OF, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace))
+    while (!tok.kind.among(TokenKind.Hash, TokenKind.RightParenthesis, TokenKind.Comma, TokenKind.Ellipsis, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_OF, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace, TokenKind.Eoi))
         advance();
 }
 
@@ -543,7 +543,7 @@ void parseTerm() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Hash, TokenKind.RightParenthesis, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace))
+    while (!tok.kind.among(TokenKind.Hash, TokenKind.RightParenthesis, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace, TokenKind.Eoi))
         advance();
 }
 
@@ -586,7 +586,7 @@ void parseFactor() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace))
+    while (!tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace, TokenKind.Eoi))
         advance();
 }
 
@@ -604,7 +604,7 @@ void parseSet() {
         goto _error;
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace))
+    while (!tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace, TokenKind.Eoi))
         advance();
 }
 
@@ -616,7 +616,7 @@ void parseElement() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Comma, TokenKind.RightBrace))
+    while (!tok.kind.among(TokenKind.Comma, TokenKind.RightBrace, TokenKind.Eoi))
         advance();
 }
 
@@ -647,7 +647,7 @@ void parseRelation() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Plus, TokenKind.Minus, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String))
+    while (!tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Plus, TokenKind.Minus, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Eoi, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String))
         advance();
 }
 
@@ -663,7 +663,7 @@ void parseAddOp() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.LeftParenthesis, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String))
+    while (!tok.kind.among(TokenKind.LeftParenthesis, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Eoi, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String))
         advance();
 }
 
@@ -685,7 +685,7 @@ void parseMulOp() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.LeftParenthesis, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String))
+    while (!tok.kind.among(TokenKind.LeftParenthesis, TokenKind.KW_NIL, TokenKind.LeftBrace, TokenKind.Tilde, TokenKind.Eoi, TokenKind.Character, TokenKind.Ident, TokenKind.Integer, TokenKind.Real, TokenKind.String))
         advance();
 }
 
@@ -715,7 +715,7 @@ void parseDesignator() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.ColonEqual, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace))
+    while (!tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.ColonEqual, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace, TokenKind.Eoi))
         advance();
 }
 
@@ -727,7 +727,7 @@ void parseExprList() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightSquare))
+    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightSquare, TokenKind.Eoi))
         advance();
 }
 
@@ -739,7 +739,7 @@ void parseIdentList() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Colon)
+    while (!tok.kind.among(TokenKind.Colon, TokenKind.Eoi))
         advance();
 }
 
@@ -753,7 +753,7 @@ void parseQualident() {
         goto _error;
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Period, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.ColonEqual, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.LeftSquare, TokenKind.RightSquare, TokenKind.Caret, TokenKind.Pipe, TokenKind.RightBrace))
+    while (!tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Period, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.ColonEqual, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.LeftSquare, TokenKind.RightSquare, TokenKind.Caret, TokenKind.Pipe, TokenKind.RightBrace, TokenKind.Eoi))
         advance();
 }
 
@@ -770,7 +770,7 @@ void parseIdentDef() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Comma, TokenKind.Colon, TokenKind.Semi, TokenKind.Equal))
+    while (!tok.kind.among(TokenKind.LeftParenthesis, TokenKind.Comma, TokenKind.Colon, TokenKind.Semi, TokenKind.Equal, TokenKind.Eoi))
         advance();
 }
 
@@ -783,6 +783,6 @@ void parseNumber() {
     }
     return;
 _error:
-    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace))
+    while (!tok.kind.among(TokenKind.Hash, TokenKind.Amp, TokenKind.RightParenthesis, TokenKind.Star, TokenKind.Plus, TokenKind.Comma, TokenKind.Minus, TokenKind.Ellipsis, TokenKind.Slash, TokenKind.Colon, TokenKind.Semi, TokenKind.Less, TokenKind.LessEqual, TokenKind.Equal, TokenKind.Greater, TokenKind.GreaterEqual, TokenKind.KW_BY, TokenKind.KW_DIV, TokenKind.KW_DO, TokenKind.KW_ELSE, TokenKind.KW_ELSIF, TokenKind.KW_END, TokenKind.KW_IN, TokenKind.KW_IS, TokenKind.KW_MOD, TokenKind.KW_OF, TokenKind.KW_OR, TokenKind.KW_THEN, TokenKind.KW_TO, TokenKind.KW_UNTIL, TokenKind.RightSquare, TokenKind.Pipe, TokenKind.RightBrace, TokenKind.Eoi))
         advance();
 }

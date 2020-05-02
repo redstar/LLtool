@@ -17,7 +17,7 @@ import std.range : isOutputRange;
 
 void generate(R)(R sink, Grammar grammar, bool wantCPP, string cppClassname) if (isOutputRange!(R, string))
 {
-    const Fragment frag = getFragment(wantCPP, cppClassname, findExternalNames(grammar));
+    const Fragment frag = getFragment(grammar, wantCPP, cppClassname);
     if (wantCPP)
     {
         formattedWrite(sink, "#ifdef %s\n", frag.guardDeclaration);
@@ -54,11 +54,18 @@ in(node.type == NodeType.Nonterminal)
     generateAlternativeOrSequence(sink, indent+1, frag, node.link);
     formattedWrite(sink, "%s%sreturn;\n", ws, ws1);
     formattedWrite(sink, "%s%s:\n", ws, frag.errorLabel);
-    string eoi = frag.tokenName(frag.eoiToken);
-    formattedWrite(sink, "%s%swhile (%s != %s", ws, ws1, frag.tokenSingleCompare, eoi);
-    if (!node.link.followSet.empty)
-        formattedWrite(sink, " && %s", condition!true(frag, node.link.followSet));
-    formattedWrite(sink, ")\n");
+
+    // Make sure the set contains eoi
+    TerminalSet set;
+    if (node.link.followSet.equalRange(frag.eoiToken).empty) {
+        set = new TerminalSet();
+        set.insert(node.link.followSet[]);
+        set.insert(frag.eoiToken);
+    }
+    else
+        set = node.link.followSet;
+
+    formattedWrite(sink, "%s%swhile (%s)\n", ws, ws1, condition!true(frag, set));
     formattedWrite(sink, "%s%s%s%s();\n", ws, ws1, ws1, frag.advanceFunc);
     formattedWrite(sink, "%s}\n", ws);
 }
@@ -255,6 +262,7 @@ struct Fragment
     immutable string tokenSingleCompare;
     immutable string tokenSetMembership;
     immutable string eoiToken;
+    immutable string mappedEoiToken;
     immutable string advanceFunc;
     immutable string consumeFunc;
     immutable string expectFunc;
@@ -328,6 +336,8 @@ private:
             }
             return dst.toUTF8;
         }
+        else if (s == eoiToken)
+            return mappedEoiToken;
         else
             return firstToUpper(s);
     }
@@ -343,11 +353,14 @@ private:
     }
 }
 
-Fragment getFragment(bool cpp, string cppclass, dstring[dstring] add)
+Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
 {
     import std.array: byPair, assocArray;
     import std.range: chain;
 
+    immutable string eoi = grammar.eoiTerminal.name;
+    immutable string mappedEoi = grammar.eoiTerminal.externalName;
+    dstring[dstring] externMap = findExternalNames(grammar);
     if (cpp)
     {
         import std.string : toUpper;
@@ -381,12 +394,13 @@ Fragment getFragment(bool cpp, string cppclass, dstring[dstring] add)
                                                 "@": "at",
                                                 "->": "arrow",
                                             ];
-        immutable auto map = basemap.byPair.chain(add.byPair).assocArray;
+        immutable auto map = basemap.byPair.chain(externMap.byPair).assocArray;
         Fragment res = { indentWidth: 2,
                          tokenNamePrefix: "tok::",
                          tokenSingleCompare: "Tok.getKind()",
                          tokenSetMembership: "Tok.isOneOf(",
-                         eoiToken: "_eoi",
+                         eoiToken: eoi,
+                         mappedEoiToken: mappedEoi.length ? mappedEoi : "eoi",
                          advanceFunc: "advance",
                          consumeFunc: "consume",
                          expectFunc: "expect",
@@ -431,12 +445,13 @@ Fragment getFragment(bool cpp, string cppclass, dstring[dstring] add)
                                                 "%": "Percent",
                                                 "@": "At",
                                             ];
-        immutable auto map = basemap.byPair.chain(add.byPair).assocArray;
+        immutable auto map = basemap.byPair.chain(externMap.byPair).assocArray;
         Fragment res = { indentWidth: 4,
                          tokenNamePrefix: "TokenKind.",
                          tokenSingleCompare: "tok.kind",
                          tokenSetMembership: "tok.kind.among(",
-                         eoiToken: "_eoi",
+                         eoiToken: eoi,
+                         mappedEoiToken: mappedEoi.length ? mappedEoi : "Eoi",
                          advanceFunc: "advance",
                          consumeFunc: "consume",
                          expectFunc: "expect",
@@ -458,10 +473,11 @@ dstring[dstring] findExternalNames(Grammar grammar)
     import std.algorithm : filter;
     import std.utf : toUTF32;
 
+    immutable string eoi = grammar.eoiTerminal.name;
     dstring[dstring] map;
 	foreach (node; filter!(n => n.type == NodeType.Terminal)(grammar.nodes))
     {
-        if (node.externalName.length)
+        if (node.externalName.length && node.name != eoi)
         {
             // Remove " from string.
             string name = node.name[1..$-1];
