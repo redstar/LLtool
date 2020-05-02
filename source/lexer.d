@@ -45,7 +45,7 @@ enum TokenKind : uint
     Percentif = KW_if,
     Percentstart = KW_start,
     Percenttoken = KW_token,
-    Eof,
+    _eoi,
     Unknown,
 }
 
@@ -72,7 +72,7 @@ string displayName(TokenKind kind)
         case TokenKind.KW_if: return "%sif";
         case TokenKind.KW_start: return "%start";
         case TokenKind.KW_token: return "%token";
-        case TokenKind.Eof: return "end-of-file";
+        case TokenKind._eoi: return "end-of-input";
         case TokenKind.Unknown: return "unknown";
     }
 }
@@ -102,7 +102,7 @@ public:
     @property
     bool empty()
     {
-        return tok.kind == TokenKind.Eof;
+        return tok.kind == TokenKind._eoi;
     }
 
     @property
@@ -137,7 +137,7 @@ repeat:
         }
         if (cur >= data.length)
         {
-            return Token(TokenKind.Eof, data.length, 0, "");
+            return Token(TokenKind._eoi, data.length, 0, "");
         }
 
         if (isAlpha(data[cur]))
@@ -353,7 +353,7 @@ unittest
     checkToken("%start", TokenKind.KW_start, "%start");
     checkToken("%token", TokenKind.KW_token, "%token");
     checkToken("$", TokenKind.Unknown, "$");
-    checkToken("", TokenKind.Eof, "");
+    checkToken("", TokenKind._eoi, "");
 }
 
 unittest
@@ -401,7 +401,7 @@ unittest
     assert(lexer.front.kind == TokenKind.Semi);
     assert(lexer.front.val == ";");
     lexer.popFront;
-    assert(lexer.front.kind == TokenKind.Eof);
+    assert(lexer.front.kind == TokenKind._eoi);
     assert(lexer.empty);
 
     // Do the same at compile time
@@ -444,7 +444,7 @@ unittest
     assert(lexer.front.kind == TokenKind.Argument);
     assert(lexer.front.val == "bcd");
     lexer.popFront;
-    assert(lexer.front.kind == TokenKind.Eof);
+    assert(lexer.front.kind == TokenKind._eoi);
     assert(lexer.empty);
 }
 
@@ -458,7 +458,7 @@ unittest
     assert(lexer.front.kind == TokenKind.Argument);
     assert(lexer.front.val == "bcd");
     lexer.popFront;
-    assert(lexer.front.kind == TokenKind.Eof);
+    assert(lexer.front.kind == TokenKind._eoi);
     assert(lexer.empty);
 }
 
@@ -472,6 +472,6 @@ unittest
     assert(lexer.front.kind == TokenKind.Argument);
     assert(lexer.front.val == "");
     lexer.popFront;
-    assert(lexer.front.kind == TokenKind.Eof);
+    assert(lexer.front.kind == TokenKind._eoi);
     assert(lexer.empty);
 }

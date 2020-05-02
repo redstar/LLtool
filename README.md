@@ -14,6 +14,7 @@ the generation of C++ code.
 The generated code makes some assumptions about the environment:
 
 - It assumes there are functions `expect()`, `consume()` and `advance()`.
+- It assumes that functions `expect()` and `consume()` return `true` in case of error.
 - It assumes there exists an enumeration `TokenKind`.
 - It assumes there is a member/variable `tok`. The type of `tok` is not important.
   Only a member/property `kind` (of type `TokenKind`) is required.
@@ -131,10 +132,14 @@ conflict and then use a resolver:
 LLtools checks if resolver and predicates are placed correctly. Incorrectly
 placed resolvers and predicates are ignored and a warning is printed.
 
+## Error handling
+
+A simple local error handling scheme based on _FOLLOW_ sets is implemented. It
+uses the so-called panic mode approach.
+
 ## Open tasks
 
 - Support parser generation at compile time
-- Implement error recovery
 
 Feedback of any kind is very much appreciated!
 

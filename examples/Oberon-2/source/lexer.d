@@ -86,7 +86,7 @@ enum TokenKind : uint
     KW_VAR,
     KW_WHILE,
     KW_WITH,
-    Eoi,
+    _eoi,
     Unknown,
 }
 
@@ -174,7 +174,7 @@ string displayName(TokenKind kind)
     	case TokenKind.KW_VAR: return "VAR";
     	case TokenKind.KW_WHILE: return "WHILE";
     	case TokenKind.KW_WITH: return "WITH";
-        case TokenKind.Eoi: return "end-of-input";
+        case TokenKind._eoi: return "end-of-input";
         case TokenKind.Unknown: return "unknown";
     }
 }
@@ -227,7 +227,7 @@ public:
     @property
     bool empty()
     {
-        return tok.kind == TokenKind.Eoi;
+        return tok.kind == TokenKind._eoi;
     }
 
     @property
@@ -268,7 +268,7 @@ repeat:
         }
         if (cur >= data.length)
         {
-            return Token(TokenKind.Eoi, data.length, 0, "");
+            return Token(TokenKind._eoi, data.length, 0, "");
         }
 
         if (isAlpha(data[cur]))
@@ -450,5 +450,5 @@ unittest
     checkToken("0.314E+01", TokenKind.Real, "0.314E+01");
     checkToken("MODULE", TokenKind.KW_MODULE, "MODULE");
     checkToken("WITH", TokenKind.KW_WITH, "WITH");
-    checkToken("", TokenKind.Eoi, "");
+    checkToken("", TokenKind._eoi, "");
 }

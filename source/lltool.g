@@ -1,6 +1,6 @@
 /* Grammar for LLtool */
 %token identifier, code, argument, string
-%token "%token" = KW_token, "%start" = KW_start
+%token "%token" = KW_token, "%start" = KW_start, "%if" = KW_if
 %start lltool
 %%
 lltool

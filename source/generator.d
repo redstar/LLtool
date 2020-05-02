@@ -50,8 +50,17 @@ void generateRule(R)(R sink, size_t indent, const ref Fragment frag, Node node)
 in(node.type == NodeType.Nonterminal)
 {
     const ws = frag.whitespace(indent);
+    const ws1 = frag.whitespace(1);
     formattedWrite(sink, "%svoid %s(%s) {\n", ws, frag.funcName!true(node.name), node.formalArgs);
     generateAlternativeOrSequence(sink, indent+1, frag, node.link);
+    formattedWrite(sink, "%s%sreturn;\n", ws, ws1);
+    formattedWrite(sink, "%s%s:\n", ws, frag.errorLabel);
+    string eoi = frag.tokenName(frag.eoiToken);
+    formattedWrite(sink, "%s%swhile (%s != %s", ws, ws1, frag.tokenSingleCompare, eoi);
+    if (!node.link.followSet.empty)
+        formattedWrite(sink, " && %s", condition!true(frag, node.link.followSet));
+    formattedWrite(sink, ")\n");
+    formattedWrite(sink, "%s%s%s%s();\n", ws, ws1, ws1, frag.advanceFunc);
     formattedWrite(sink, "%s}\n", ws);
 }
 
@@ -128,8 +137,6 @@ in(node.type == NodeType.Sequence)
                 assert(false, "Statement not reachable");
             case NodeType.Nonterminal:
                 assert(false, "Statement not reachable");
-                //generateRule(sink, indent, n);
-                //return ;
             case NodeType.Group:
                 generateGroup(sink, indent, frag, n);
                 break;
@@ -170,8 +177,11 @@ in(node.type == NodeType.Symbol)
     else
     {
         const useExpect = node.next !is null && node.next.type == NodeType.Code;
-        if (!startOfCondition)
-            formattedWrite(sink, "%s%s(%s);\n", ws, useExpect ? frag.expectFunc : frag.consumeFunc, frag.tokenName(node.name));
+        if (!startOfCondition) {
+            string func = useExpect ? frag.expectFunc : frag.consumeFunc;
+            formattedWrite(sink, "%sif (%s(%s))\n", ws, func, frag.tokenName(node.name));
+            formattedWrite(sink, "%s%sgoto %s;\n", ws, frag.whitespace(1), frag.errorLabel);
+        }
         return useExpect || startOfCondition;
     }
 }
@@ -211,18 +221,20 @@ in(n !is null)
         return condition(frag, n.firstSet);
 }
 
-string condition(const ref Fragment frag, TerminalSet set)
+string condition(bool negate = false)(const ref Fragment frag, TerminalSet set)
 in(set !is null)
 {
     if (set.length == 0)
         return "false";
     if (set.length == 1)
     {
-        return frag.tokenSingleCompare ~ frag.tokenName(set.front);
+        return frag.tokenSingleCompare
+               ~ (negate ? " != " : " == " )
+               ~ frag.tokenName(set.front);
     }
     else
     {
-        string c = frag.tokenSetMembership;
+        string c = (negate ? "!" : "") ~ frag.tokenSetMembership;
         bool first = true;
         foreach (t; set)
         {
@@ -243,11 +255,13 @@ struct Fragment
     immutable string tokenNamePrefix;
     immutable string tokenSingleCompare;
     immutable string tokenSetMembership;
+    immutable string eoiToken;
     immutable string advanceFunc;
     immutable string consumeFunc;
     immutable string expectFunc;
     immutable string classNamePrefix;
     immutable string funcNamePrefix;
+    immutable string errorLabel;
     immutable string guardDeclaration;
     immutable string guardDefinition;
     immutable dstring[dstring] tokenMappings;
@@ -371,13 +385,15 @@ Fragment getFragment(bool cpp, string cppclass, dstring[dstring] add)
         immutable auto map = basemap.byPair.chain(add.byPair).assocArray;
         Fragment res = { indentWidth: 2,
                          tokenNamePrefix: "tok::",
-                         tokenSingleCompare: "Tok.getKind() == ",
+                         tokenSingleCompare: "Tok.getKind()",
                          tokenSetMembership: "Tok.isOneOf(",
-                         advanceFunc: "consumeToken",
-                         consumeFunc: "expectAndConsumeToken",
-                         expectFunc: "expectToken",
+                         eoiToken: "_eoi",
+                         advanceFunc: "advance",
+                         consumeFunc: "consume",
+                         expectFunc: "expect",
                          classNamePrefix: cppclass.length ?  cppclass ~ "::" : "",
                          funcNamePrefix: "parse",
+                         errorLabel: "_error",
                          guardDeclaration: guard ~ "_DECLARATION",
                          guardDefinition: guard ~ "_DEFINITION",
                          tokenMappings: map,
@@ -419,13 +435,15 @@ Fragment getFragment(bool cpp, string cppclass, dstring[dstring] add)
         immutable auto map = basemap.byPair.chain(add.byPair).assocArray;
         Fragment res = { indentWidth: 4,
                          tokenNamePrefix: "TokenKind.",
-                         tokenSingleCompare: "tok.kind == ",
+                         tokenSingleCompare: "tok.kind",
                          tokenSetMembership: "tok.kind.among(",
+                         eoiToken: "_eoi",
                          advanceFunc: "advance",
                          consumeFunc: "consume",
                          expectFunc: "expect",
                          classNamePrefix: "",
                          funcNamePrefix: "parse",
+                         errorLabel: "_error",
                          guardDeclaration: "",
                          guardDefinition: "",
                          tokenMappings: map,

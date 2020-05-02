@@ -6,13 +6,18 @@ void parseLltool() {
     do {
         parseRule();
     } while (tok.kind == TokenKind.Identifier);
+    return;
+_error:
+    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind._eoi)
+        advance();
 }
 
 void parseHeader() {
     while (tok.kind.among(TokenKind.Percenteoi, TokenKind.Percentstart, TokenKind.Percenttoken)) {
         if (tok.kind == TokenKind.Percentstart) {
             advance();
-            expect(TokenKind.Identifier);
+            if (expect(TokenKind.Identifier))
+                goto _error;
             builder.startSymbol(tok.pos, tok.val);
             advance();
         }
@@ -22,12 +27,18 @@ void parseHeader() {
         }
         else if (tok.kind == TokenKind.Percenteoi) {
             advance();
-            expect(TokenKind.Identifier);
+            if (expect(TokenKind.Identifier))
+                goto _error;
             builder.eoiSymbol(tok.pos, tok.val);
             advance();
         }
     }
-    consume(TokenKind.PercentPercent);
+    if (consume(TokenKind.PercentPercent))
+        goto _error;
+    return;
+_error:
+    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Identifier)
+        advance();
 }
 
 void parseTokenlist() {
@@ -36,6 +47,10 @@ void parseTokenlist() {
         advance();
         parseTokendecl();
     }
+    return;
+_error:
+    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.PercentPercent)
+        advance();
 }
 
 void parseTokendecl() {
@@ -50,24 +65,36 @@ void parseTokendecl() {
     }
     if (tok.kind == TokenKind.Equal) {
         advance();
-        expect(TokenKind.Identifier);
+        if (expect(TokenKind.Identifier))
+            goto _error;
         ext = tok.val;
         advance();
     }
     builder.terminal(pos, val, ext);
+    return;
+_error:
+    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.PercentPercent, TokenKind.Comma))
+        advance();
 }
 
 void parseRule() {
     Node node;
     parseNonterminal(node);
-    consume(TokenKind.Colon);
+    if (consume(TokenKind.Colon))
+        goto _error;
     parseRhs(node.link);
     node.link.back = node;
-    consume(TokenKind.Semi);
+    if (consume(TokenKind.Semi))
+        goto _error;
+    return;
+_error:
+    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind._eoi, TokenKind.Identifier))
+        advance();
 }
 
 void parseNonterminal(out Node node) {
-    expect(TokenKind.Identifier);
+    if (expect(TokenKind.Identifier))
+        goto _error;
     node = builder.nonterminal(tok.pos, tok.val);
     advance();
     if (tok.kind == TokenKind.Argument) {
@@ -77,6 +104,10 @@ void parseNonterminal(out Node node) {
     if (tok.kind == TokenKind.Code) {
         advance();
     }
+    return;
+_error:
+    while (tok.kind != TokenKind._eoi && tok.kind != TokenKind.Colon)
+        advance();
 }
 
 void parseRhs(out Node node) {
@@ -85,11 +116,16 @@ void parseRhs(out Node node) {
         node = builder.alternative(node.pos, node);
                                            auto alt = node.link; alt.back = node;
         do {
-            consume(TokenKind.Pipe);
+            if (consume(TokenKind.Pipe))
+                goto _error;
             parseSequence(alt.link);
             alt = alt.link; alt.back = node;
         } while (tok.kind == TokenKind.Pipe);
     }
+    return;
+_error:
+    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi))
+        advance();
 }
 
 void parseSequence(out Node node) {
@@ -117,7 +153,8 @@ void parseSequence(out Node node) {
         }
         else if (tok.kind == TokenKind.Percentif) {
             advance();
-            expect(TokenKind.Code);
+            if (expect(TokenKind.Code))
+                goto _error;
             n = builder.code(tok.pos, tok.val); n.codeType = CodeType.Condition;
             advance();
         }
@@ -125,10 +162,15 @@ void parseSequence(out Node node) {
                                            else last.next = n, last = n;
     }
     if (last !is null) last.back = node;
+    return;
+_error:
+    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe))
+        advance();
 }
 
 void parseGroup(out Node node) {
-    expect(TokenKind.LeftParenthesis);
+    if (expect(TokenKind.LeftParenthesis))
+        goto _error;
     node = builder.group(tok.pos, Cardinality.One);
     advance();
     parseRhs(node.link);
@@ -148,4 +190,8 @@ void parseGroup(out Node node) {
         node.cardinality = Cardinality.OneOrMore;
         advance();
     }
+    return;
+_error:
+    while (tok.kind != TokenKind._eoi && !tok.kind.among(TokenKind.Percentif, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe, TokenKind.Code, TokenKind.Identifier, TokenKind.String))
+        advance();
 }

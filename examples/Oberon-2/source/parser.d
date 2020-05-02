@@ -32,22 +32,17 @@ private:
         {
             error(lexer.buffer, tok.pos, tok.len,
                   "Expected %s but found %s", kind.displayName, tok.kind.displayName);
-            return false;
+            return true;
         }
-        return true;
+        return false;
     }
 
     bool consume(TokenKind kind)
     {
         if (expect(kind))
-        {
-            advance();
-            return true;
-        }
-        else
-        {
             return false;
-        }
+        advance();
+        return true;
     }
 
     /* Simple symbol table */
