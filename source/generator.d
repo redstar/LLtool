@@ -119,10 +119,12 @@ in(node.type == NodeType.Alternative)
     const ws = frag.whitespace(indent);
     const ws1 = frag.whitespace(indent+1);
     bool useSwitch = true; // useSwitch == true <=> max. 2 tokens, no predicate
-    bool needError = true; // alternative inside repetition group does not need error branch
-    for (auto n = node.link; n !is null && useSwitch; n = n.link)
+    bool needError = true; // TODO alternative inside repetition group does not
+                           // need error branch, too-
+    for (auto n = node.link; n !is null; n = n.link)
     {
         useSwitch &= singleCondition(n);
+        needError &= !n.derivesEpsilon;
     }
     if (useSwitch)
     {
