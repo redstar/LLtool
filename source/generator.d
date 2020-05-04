@@ -117,11 +117,49 @@ void generateAlternative(R)(R sink, const size_t indent, const ref Fragment frag
 in(node.type == NodeType.Alternative)
 {
     const ws = frag.whitespace(indent);
-    for (auto n = node.link; n !is null; n = n.link)
+    const ws1 = frag.whitespace(indent+1);
+    bool useSwitch = true; // useSwitch == true <=> max. 2 tokens, no predicate
+    bool needError = true; // alternative inside repetition group does not need error branch
+    for (auto n = node.link; n !is null && useSwitch; n = n.link)
     {
-        formattedWrite(sink, "%s%s (%s) {\n", ws, node.link == n ? "if" : "else if", condition!true(frag, n));
-        generateSequence(sink, indent+1, frag, n, true);
-        formattedWrite(sink, "%s}\n", ws);
+        useSwitch &= singleCondition(n);
+    }
+    if (useSwitch)
+    {
+        formattedWrite(sink, "%sswitch (%s) {\n", ws, frag.tokenSingleCompare);
+        const ws2 = frag.whitespace(indent+2);
+        for (auto n = node.link; n !is null; n = n.link)
+        {
+            formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(n.firstSet.front));
+            if (n.derivesEpsilon)
+                formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(n.followSet.front));
+            generateSequence(sink, indent+2, frag, n, true);
+            formattedWrite(sink, "%sbreak;\n", ws2);
+        }
+        if (needError)
+        {
+            formattedWrite(sink, "%sdefault:\n", ws1);
+            formattedWrite(sink, "%s/*ERROR*/\n", ws2);
+            formattedWrite(sink, "%sgoto %s;\n", ws2, frag.errorLabel);
+            formattedWrite(sink, "%sbreak;\n", ws2);
+            formattedWrite(sink, "%s}\n", ws);
+        }
+    }
+    else
+    {
+        for (auto n = node.link; n !is null; n = n.link)
+        {
+            formattedWrite(sink, "%s%s (%s) {\n", ws, node.link == n ? "if" : "else if", condition!true(frag, n));
+            generateSequence(sink, indent+1, frag, n, true);
+            formattedWrite(sink, "%s}\n", ws);
+        }
+        if (needError)
+        {
+            formattedWrite(sink, "%selse {\n", ws);
+            formattedWrite(sink, "%s/*ERROR*/\n", ws1);
+            formattedWrite(sink, "%sgoto %s;\n", ws1, frag.errorLabel);
+            formattedWrite(sink, "%s}\n", ws);
+        }
     }
 }
 
@@ -201,6 +239,18 @@ in(node.type == NodeType.Code)
         const ws = frag.whitespace(indent);
         formattedWrite(sink, "%s%s\n", ws, node.code);
     }
+}
+
+bool singleCondition(Node n)
+{
+    if (n.inner !is null && n.inner.type == NodeType.Code &&
+        n.inner.codeType.among(CodeType.Predicate, CodeType.Resolver))
+        return false;
+    if (n.firstSet.length > 1)
+        return false;
+    if (n.derivesEpsilon && n.followSet.length > 1)
+        return false;
+    return true;
 }
 
 string condition(bool isFiFo)(const ref Fragment frag, Node n)
