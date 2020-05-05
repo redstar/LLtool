@@ -18,12 +18,14 @@ import std.range : isOutputRange;
 void generate(R)(R sink, Grammar grammar, bool wantCPP, string cppClassname) if (isOutputRange!(R, string))
 {
     const Fragment frag = getFragment(grammar, wantCPP, cppClassname);
+    auto gen = CodeGen!(R)(sink, frag);
     if (wantCPP)
     {
         formattedWrite(sink, "#ifdef %s\n", frag.guardDeclaration);
 	    foreach (node; grammar.nonterminals)
         {
-            generateCPPRulePrototype(sink, 0, frag, node);
+            gen.reset();
+            gen.rulePrototype(0, node);
         }
         formattedWrite(sink, "#endif // of %s\n", frag.guardDeclaration);
         formattedWrite(sink, "#ifdef %s\n", frag.guardDefinition);
@@ -35,7 +37,8 @@ void generate(R)(R sink, Grammar grammar, bool wantCPP, string cppClassname) if 
             first = false;
         else
             sink.put("\n");
-        generateRule(sink, 0, frag, node);
+        gen.reset();
+        gen.rule(0, node);
     }
     if (wantCPP)
     {
@@ -45,201 +48,234 @@ void generate(R)(R sink, Grammar grammar, bool wantCPP, string cppClassname) if 
 
 private:
 
-void generateRule(R)(R sink, size_t indent, const ref Fragment frag, Node node)
-in(node.type == NodeType.Nonterminal)
+struct CodeGen(R) if (isOutputRange!(R, string))
 {
-    const ws = frag.whitespace(indent);
-    const ws1 = frag.whitespace(1);
-    formattedWrite(sink, "%svoid %s(%s) {\n", ws, frag.funcName!true(node.name), node.formalArgs);
-    generateAlternativeOrSequence(sink, indent+1, frag, node.link);
-    formattedWrite(sink, "%s%sreturn;\n", ws, ws1);
-    formattedWrite(sink, "%s%s:\n", ws, frag.errorLabel);
+private:
+    R sink;
+    const Fragment frag;
 
-    // Make sure the set contains eoi
-    TerminalSet set;
-    if (node.link.followSet.equalRange(frag.eoiToken).empty) {
-        set = new TerminalSet();
-        set.insert(node.link.followSet[]);
-        set.insert(frag.eoiToken);
+    bool needErrorHandling;
+
+public:
+    this(R sink, const Fragment frag) {
+        this.sink = sink;
+        this.frag = frag;
+        for (size_t i = 0; i < wscache.length; ++i)
+            wscache[i] = frag.whitespace(i);
     }
-    else
-        set = node.link.followSet;
 
-    formattedWrite(sink, "%s%swhile (%s)\n", ws, ws1, condition!true(frag, set));
-    formattedWrite(sink, "%s%s%s%s();\n", ws, ws1, ws1, frag.advanceFunc);
-    formattedWrite(sink, "%s}\n", ws);
-}
-
-void generateCPPRulePrototype(R)(R sink, size_t indent, const ref Fragment frag, Node node)
-in(node.type == NodeType.Nonterminal)
-{
-    const ws = frag.whitespace(indent);
-    formattedWrite(sink, "%svoid %s(%s);\n", ws, frag.funcName(node.name), node.formalArgs);
-}
-
-void generateGroup(R)(R sink, const size_t indent, const ref Fragment frag, Node node)
-in(node.type == NodeType.Group)
-{
-    const ws = frag.whitespace(indent);
-    final switch (node.cardinality)
+    void reset()
     {
-        case Cardinality.One:
-            generateAlternativeOrSequence(sink, indent, frag, node.link);
-            break;
-        case Cardinality.OneOrMore:
-            formattedWrite(sink, "%sdo {\n", ws);
-            generateAlternativeOrSequence(sink, indent+1, frag, node.link);
-            formattedWrite(sink, "%s} while (%s);\n", ws, condition!false(frag, node.link));
-            break;
-        case Cardinality.ZeroOrOne:
-            formattedWrite(sink, "%sif (%s) {\n", ws, condition!false(frag, node.link));
-            generateAlternativeOrSequence(sink, indent+1, frag, node.link, true);
-            formattedWrite(sink, "%s}\n", ws);
-            break;
-        case Cardinality.ZeroOrMore:
-            formattedWrite(sink, "%swhile (%s) {\n", ws, condition!false(frag, node.link));
-            generateAlternativeOrSequence(sink, indent+1, frag, node.link, true);
-            formattedWrite(sink, "%s}\n", ws);
-            break;
+        needErrorHandling = false;
     }
-}
 
-void generateAlternativeOrSequence(R)(R sink, size_t indent, const ref Fragment frag, Node node, bool startOfCondition = false)
-in(node !is null && node.type.among!(NodeType.Sequence, NodeType.Alternative))
-{
-    if (node.type == NodeType.Alternative)
-        generateAlternative(sink, indent, frag, node);
-    else if (node.type == NodeType.Sequence)
-        generateSequence(sink, indent, frag, node, startOfCondition);
-}
-
-void generateAlternative(R)(R sink, const size_t indent, const ref Fragment frag, Node node)
-in(node.type == NodeType.Alternative)
-{
-    const ws = frag.whitespace(indent);
-    const ws1 = frag.whitespace(indent+1);
-    bool useSwitch = true; // useSwitch == true <=> max. 2 tokens, no predicate
-    bool needError = true; // TODO alternative inside repetition group does not
-                           // need error branch, too-
-    for (auto n = node.link; n !is null; n = n.link)
+    void rulePrototype(size_t indent, Node node)
+    in(node.type == NodeType.Nonterminal)
     {
-        useSwitch &= singleCondition(n);
-        needError &= !n.derivesEpsilon;
+        const ws = ws(indent);
+        formattedWrite(sink, "%svoid %s(%s);\n", ws, frag.funcName(node.name), node.formalArgs);
     }
-    if (useSwitch)
+
+    void rule(size_t indent, Node node)
     {
-        formattedWrite(sink, "%sswitch (%s) {\n", ws, frag.tokenSingleCompare);
-        const ws2 = frag.whitespace(indent+2);
+        formattedWrite(sink, "%svoid %s(%s) {\n", ws(indent), frag.funcName!true(node.name), node.formalArgs);
+        alternativeOrSequence(indent+1, node.link);
+        formattedWrite(sink, "%sreturn;\n", ws(indent+1));
+
+        if (needErrorHandling)
+        {
+            formattedWrite(sink, "%s%s:\n", ws(indent), frag.errorLabel);
+
+            // Make sure the set contains eoi
+            TerminalSet set;
+            if (node.link.followSet.equalRange(frag.eoiToken).empty) {
+                set = new TerminalSet();
+                set.insert(node.link.followSet[]);
+                set.insert(frag.eoiToken);
+            }
+            else
+                set = node.link.followSet;
+
+            formattedWrite(sink, "%swhile (%s)\n", ws(indent+1), condition!true(frag, set));
+            formattedWrite(sink, "%s%s();\n", ws(indent+2), frag.advanceFunc);
+        }
+        formattedWrite(sink, "%s}\n", ws(indent));
+    }
+
+    void alternativeOrSequence(size_t indent, Node node, bool startOfCondition = false)
+    in(node !is null && node.type.among!(NodeType.Sequence, NodeType.Alternative))
+    {
+        if (node.type == NodeType.Alternative)
+            alternative(indent, node);
+        else if (node.type == NodeType.Sequence)
+            sequence(indent, node, startOfCondition);
+    }
+
+    void group(const size_t indent, Node node)
+    in(node.type == NodeType.Group)
+    {
+        final switch (node.cardinality)
+        {
+            case Cardinality.One:
+                alternativeOrSequence(indent, node.link);
+                break;
+            case Cardinality.OneOrMore:
+                formattedWrite(sink, "%sdo {\n", ws(indent));
+                alternativeOrSequence(indent+1, node.link);
+                formattedWrite(sink, "%s} while (%s);\n", ws(indent), condition!false(frag, node.link));
+                break;
+            case Cardinality.ZeroOrOne:
+                formattedWrite(sink, "%sif (%s) {\n", ws(indent), condition!false(frag, node.link));
+                alternativeOrSequence(indent+1, node.link, true);
+                formattedWrite(sink, "%s}\n", ws(indent));
+                break;
+            case Cardinality.ZeroOrMore:
+                formattedWrite(sink, "%swhile (%s) {\n", ws(indent), condition!false(frag, node.link));
+                alternativeOrSequence(indent+1, node.link, true);
+                formattedWrite(sink, "%s}\n", ws(indent));
+                break;
+        }
+    }
+
+    void alternative(const size_t indent, Node node)
+    in(node.type == NodeType.Alternative)
+    {
+        const ws2 = ws(indent+2);
+        const ws1 = ws(indent+1);
+        const ws = ws(indent);
+        bool useSwitch = true; // useSwitch == true <=> max. 2 tokens, no predicate
+        bool needError = true; // TODO alternative inside repetition group does not
+                            // need error branch, too-
         for (auto n = node.link; n !is null; n = n.link)
         {
-            formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(n.firstSet.front));
-            if (n.derivesEpsilon)
-                formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(n.followSet.front));
-            generateSequence(sink, indent+2, frag, n, true);
-            formattedWrite(sink, "%sbreak;\n", ws2);
+            useSwitch &= singleCondition(n);
+            needError &= !n.derivesEpsilon;
         }
-        if (needError)
+        if (useSwitch)
         {
-            formattedWrite(sink, "%sdefault:\n", ws1);
-            formattedWrite(sink, "%s/*ERROR*/\n", ws2);
-            formattedWrite(sink, "%sgoto %s;\n", ws2, frag.errorLabel);
-            formattedWrite(sink, "%sbreak;\n", ws2);
-            formattedWrite(sink, "%s}\n", ws);
+            formattedWrite(sink, "%sswitch (%s) {\n", ws, frag.tokenSingleCompare);
+            for (auto n = node.link; n !is null; n = n.link)
+            {
+                formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(n.firstSet.front));
+                if (n.derivesEpsilon)
+                    formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(n.followSet.front));
+                sequence(indent+2, n, true);
+                formattedWrite(sink, "%sbreak;\n", ws2);
+            }
+            if (needError)
+            {
+                formattedWrite(sink, "%sdefault:\n", ws1);
+                formattedWrite(sink, "%s/*ERROR*/\n", ws2);
+                formattedWrite(sink, "%sgoto %s;\n", ws2, frag.errorLabel);
+                needErrorHandling = true;
+                formattedWrite(sink, "%sbreak;\n", ws2);
+                formattedWrite(sink, "%s}\n", ws);
+            }
+        }
+        else
+        {
+            for (auto n = node.link; n !is null; n = n.link)
+            {
+                formattedWrite(sink, "%s%s (%s) {\n", ws, node.link == n ? "if" : "else if", condition!true(frag, n));
+                sequence(indent+1, n, true);
+                formattedWrite(sink, "%s}\n", ws);
+            }
+            if (needError)
+            {
+                formattedWrite(sink, "%selse {\n", ws);
+                formattedWrite(sink, "%s/*ERROR*/\n", ws1);
+                formattedWrite(sink, "%sgoto %s;\n", ws1, frag.errorLabel);
+                needErrorHandling = true;
+                formattedWrite(sink, "%s}\n", ws);
+            }
         }
     }
-    else
-    {
-        for (auto n = node.link; n !is null; n = n.link)
-        {
-            formattedWrite(sink, "%s%s (%s) {\n", ws, node.link == n ? "if" : "else if", condition!true(frag, n));
-            generateSequence(sink, indent+1, frag, n, true);
-            formattedWrite(sink, "%s}\n", ws);
-        }
-        if (needError)
-        {
-            formattedWrite(sink, "%selse {\n", ws);
-            formattedWrite(sink, "%s/*ERROR*/\n", ws1);
-            formattedWrite(sink, "%sgoto %s;\n", ws1, frag.errorLabel);
-            formattedWrite(sink, "%s}\n", ws);
-        }
-    }
-}
 
-void generateSequence(R)(R sink, const size_t indent, const ref Fragment frag, Node node, bool startOfCondition = false)
-in(node.type == NodeType.Sequence)
-{
-    const ws = frag.whitespace(indent);
-    bool genAdvance = false;
-    foreach (n; NodeNextRange(node.inner))
+    void sequence(const size_t indent, Node node, bool startOfCondition = false)
+    in(node.type == NodeType.Sequence)
     {
-        if (genAdvance && n.type != NodeType.Code)
+        const ws = ws(indent);
+        bool genAdvance = false;
+        foreach (n; NodeNextRange(node.inner))
+        {
+            if (genAdvance && n.type != NodeType.Code)
+            {
+                formattedWrite(sink, "%s%s();\n", ws, frag.advanceFunc);
+                genAdvance = false;
+            }
+            final switch (n.type)
+            {
+                case NodeType.Terminal:
+                    assert(false, "Statement not reachable");
+                case NodeType.Nonterminal:
+                    assert(false, "Statement not reachable");
+                case NodeType.Group:
+                    group(indent, n);
+                    break;
+                case NodeType.Alternative:
+                    alternative(indent, n);
+                    break;
+                case NodeType.Sequence:
+                    sequence(indent, n);
+                    break;
+                case NodeType.Symbol:
+                    genAdvance = symbol(indent, n, startOfCondition);
+                    break;
+                case NodeType.Code:
+                    code(indent, n);
+                    break;
+            }
+            if (startOfCondition)
+                // Set startOfCondition to false if anything other than
+                //  code  was emitted.
+                startOfCondition = n.type == NodeType.Code;
+        }
+        if (genAdvance)
         {
             formattedWrite(sink, "%s%s();\n", ws, frag.advanceFunc);
-            genAdvance = false;
         }
-        final switch (n.type)
+    }
+
+    bool symbol(const size_t indent, Node node, bool startOfCondition = false)
+    in(node.type == NodeType.Symbol)
+    {
+        assert(node.inner !is null);
+        const ws = ws(indent);
+        if (node.inner.type == NodeType.Nonterminal)
         {
-            case NodeType.Terminal:
-                assert(false, "Statement not reachable");
-            case NodeType.Nonterminal:
-                assert(false, "Statement not reachable");
-            case NodeType.Group:
-                generateGroup(sink, indent, frag, n);
-                break;
-            case NodeType.Alternative:
-                generateAlternative(sink, indent, frag, n);
-                break;
-            case NodeType.Sequence:
-                generateSequence(sink, indent, frag, n);
-                break;
-            case NodeType.Symbol:
-                genAdvance = generateSymbol(sink, indent, frag, n, startOfCondition);
-                break;
-            case NodeType.Code:
-                generateCode(sink, indent, frag, n);
-                break;
+            formattedWrite(sink, "%s%s(%s);\n", ws, frag.funcName(node.name), node.actualArgs);
+            return false;
         }
-        if (startOfCondition)
-            // Set startOfCondition to false if anything other than
-            //  code  was emitted.
-            startOfCondition = n.type == NodeType.Code;
-    }
-    if (genAdvance)
-    {
-        formattedWrite(sink, "%s%s();\n", ws, frag.advanceFunc);
-    }
-}
-
-bool generateSymbol(R)(R sink, const size_t indent, const ref Fragment frag, Node node, bool startOfCondition = false)
-in(node.type == NodeType.Symbol)
-{
-    assert(node.inner !is null);
-    const ws = frag.whitespace(indent);
-    if (node.inner.type == NodeType.Nonterminal)
-    {
-        formattedWrite(sink, "%s%s(%s);\n", ws, frag.funcName(node.name), node.actualArgs);
-        return false;
-    }
-    else
-    {
-        const useExpect = node.next !is null && node.next.type == NodeType.Code;
-        if (!startOfCondition) {
-            string func = useExpect ? frag.expectFunc : frag.consumeFunc;
-            formattedWrite(sink, "%sif (%s(%s))\n", ws, func, frag.tokenName(node.name));
-            formattedWrite(sink, "%s%sgoto %s;\n", ws, frag.whitespace(1), frag.errorLabel);
+        else
+        {
+            const useExpect = node.next !is null && node.next.type == NodeType.Code;
+            if (!startOfCondition) {
+                string func = useExpect ? frag.expectFunc : frag.consumeFunc;
+                formattedWrite(sink, "%sif (%s(%s))\n", ws, func, frag.tokenName(node.name));
+                formattedWrite(sink, "%s%sgoto %s;\n", ws, frag.whitespace(1), frag.errorLabel);
+                needErrorHandling = true;
+            }
+            return useExpect || startOfCondition;
         }
-        return useExpect || startOfCondition;
     }
-}
 
-void generateCode(R)(R sink, const size_t indent, const ref Fragment frag, Node node)  if (isOutputRange!(R, string))
-in(node.type == NodeType.Code)
-{
-    // Only emit "normal" code. Resolvers and predicates are emitted elsewhere.
-    if (node.codeType == CodeType.Normal)
+    void code(const size_t indent, Node node)
+    in(node.type == NodeType.Code)
     {
-        const ws = frag.whitespace(indent);
-        formattedWrite(sink, "%s%s\n", ws, node.code);
+        // Only emit "normal" code. Resolvers and predicates are emitted elsewhere.
+        if (node.codeType == CodeType.Normal)
+        {
+            formattedWrite(sink, "%s%s\n", ws(indent), node.code);
+        }
+    }
+
+private:
+    string[5] wscache;
+
+    string ws(size_t indent){
+        if (indent < wscache.length)
+            return wscache[indent];
+        return frag.whitespace(indent);
     }
 }
 
