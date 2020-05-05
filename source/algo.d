@@ -292,7 +292,6 @@ public void computeSetValuedFunc(alias startValue, alias relation, string prop, 
 		const d = stack.length;
 		numbers[a] = d;
 
-
 		__traits(getMember, a, prop) = startValue(a);
 		foreach (b; relation(a)) {
 			assert(b !is null);
@@ -492,6 +491,7 @@ void calculateFirstSets(Grammar grammar)
 	auto noderange = filter!(n => n.type != NodeType.Code)(grammar.nodes);
 	computeSetValuedFunc!(startValue, relation, "firstSet")(noderange);
 	version(unittest) checkFirstSets(grammar);
+	debug checkFirstSets(grammar);
 }
 
 private void checkFirstSets(Grammar grammar)
@@ -714,6 +714,7 @@ void calculateFollowSets(Grammar grammar)
 	auto noderange = filter!(n => n.type.among!(NodeType.Alternative, NodeType.Group, NodeType.Sequence, NodeType.Symbol))(grammar.nodes);
 	computeSetValuedFunc!(startValue, relation, "followSet")(noderange);
 	version(unittest) checkFollowSets(grammar);
+	debug checkFollowSets(grammar);
 }
 
 private void checkFollowSets(Grammar grammar)
