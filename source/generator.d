@@ -156,9 +156,8 @@ public:
             formattedWrite(sink, "%sswitch (%s) {\n", ws, frag.tokenSingleCompare);
             for (auto n = node.link; n !is null; n = n.link)
             {
-                formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(n.firstSet.front));
-                if (n.derivesEpsilon)
-                    formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(n.followSet.front));
+                string token = n.firstSet.empty ? n.followSet.front : n.firstSet.front;
+                formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(token));
                 sequence(indent+2, n, true);
                 formattedWrite(sink, "%sbreak;\n", ws2);
             }
@@ -284,11 +283,11 @@ bool singleCondition(Node n)
     if (n.inner !is null && n.inner.type == NodeType.Code &&
         n.inner.codeType.among(CodeType.Predicate, CodeType.Resolver))
         return false;
-    if (n.firstSet.length > 1)
-        return false;
-    if (n.derivesEpsilon && n.followSet.length > 1)
-        return false;
-    return true;
+    if (n.firstSet.length == 1)
+        return true;
+    if (n.firstSet.length == 0 && n.followSet.length == 1)
+        return true;
+    return false;
 }
 
 string condition(bool isFiFo)(const ref Fragment frag, Node n)
@@ -304,15 +303,7 @@ string condition(bool isFiFo)(const ref Fragment frag, Node n)
 string fifocondition(const ref Fragment frag, Node n)
 in(n !is null)
 {
-    if (n.derivesEpsilon)
-    {
-        TerminalSet set = new TerminalSet();
-        set.insert(n.firstSet[]);
-        set.insert(n.followSet[]);
-        return condition(frag, set);
-    }
-    else
-        return condition(frag, n.firstSet);
+    return condition(frag, n.firstSet.empty ? n.followSet : n.firstSet);
 }
 
 string condition(bool negate = false)(const ref Fragment frag, TerminalSet set)
