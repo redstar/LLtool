@@ -27,6 +27,9 @@ bool generateCPP;
 /// Optional name of C++ class.
 string cppClassname;
 
+/// Generate report.
+bool xref;
+
 /**
  * Parses the commandline.
  *
@@ -47,6 +50,7 @@ bool parseCmdLine(ref string[] args)
 			"debug|d", "Enable debug output", &debugging,
 			"o", "The name of output file", &output,
 			"w", "Treat warnings are errors", &warningsAreErrors,
+			"x|xref", "Print listing of grammar", &xref,
 		);
 		if (result.helpWanted || args.length != 2)
 		{

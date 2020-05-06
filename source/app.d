@@ -16,6 +16,7 @@ import generator;
 import cmdline;
 import diagnostics;
 import graphviz;
+import report;
 import verify;
 import std.file : write, readText, FileException;
 import std.path : setExtension;
@@ -86,6 +87,9 @@ void main(string[] args)
 		auto sink = Sink(outputFilename);
 		scope(exit) sink.close();
 		generate(sink, grammar, generateCPP, cppClassname);
+
+		if (xref)
+			printReport(grammar);
 	}
 	catch (FileException e)
 	{
