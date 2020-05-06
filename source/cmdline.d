@@ -38,17 +38,26 @@ string cppClassname;
  */
 bool parseCmdLine(ref string[] args)
 {
-   	auto result = getopt(args,
-		std.getopt.config.caseSensitive,
-		"cpp", "Generate C++ source", &generateCPP,
-		"cppclass", "Name of generated C++ class", &cppClassname,
-		"debug|d", "Enable debug output", &debugging,
-		"o", "The name of output file", &output,
-		"w", "Treat warnings are errors", &warningsAreErrors,
-	);
-    if (result.helpWanted || args.length != 2)
+	immutable string head = "LLtool - a LL(1) parser generator for D";
+	try {
+		auto result = getopt(args,
+			std.getopt.config.caseSensitive,
+			"cpp", "Generate C++ source", &generateCPP,
+			"cppclass", "Name of generated C++ class", &cppClassname,
+			"debug|d", "Enable debug output", &debugging,
+			"o", "The name of output file", &output,
+			"w", "Treat warnings are errors", &warningsAreErrors,
+		);
+		if (result.helpWanted || args.length != 2)
+		{
+			defaultGetoptPrinter(head ~ "\nUsage: LLtool [options] grammar\n", result.options);
+			return false;
+		}
+	}
+	catch (GetOptException ex)
 	{
-		defaultGetoptPrinter("LLtool - a LL(1) parser generator for D\nUsage: LLtool [options] grammar\n", result.options);
+		import std.stdio : writefln;
+		writefln("%s\n%s. See 'LLtool --help'.", head, ex.message);
 		return false;
 	}
     return true;
