@@ -421,6 +421,20 @@ public:
     }
 
     @property
+    Node parent()
+    {
+        // The back pointer is only set for the first and last element of
+        // a sequence.
+        Node node = &this;
+        while (node.back is null)
+        {
+            assert(node.next !is null);
+            node = node.next;
+        }
+        return node.back;
+    }
+
+    @property
     Node succ()
     {
         Node node = next;

@@ -140,12 +140,36 @@ public:
     void alternative(const size_t indent, Node node)
     in(node.type == NodeType.Alternative)
     {
+        bool isFirstChildOfOptGroup(Node node)
+        {
+            Node n = node;
+            Node p = node.parent;
+            while (p !is null)
+            {
+                if (p.type == NodeType.Group &&
+                    p.cardinality.among(Cardinality.ZeroOrOne, Cardinality.ZeroOrMore))
+                    return true;
+                if ((p.type == NodeType.Group &&
+                    p.cardinality == Cardinality.One) ||
+                    (p.type == NodeType.Sequence && p.inner == n))
+                {
+                    n = p;
+                    p = p.parent;
+                    continue;
+                }
+                break;
+            }
+            return false;
+        }
+
         const ws2 = ws(indent+2);
         const ws1 = ws(indent+1);
         const ws = ws(indent);
         bool useSwitch = true; // useSwitch == true <=> max. 2 tokens, no predicate
-        bool needError = true; // TODO alternative inside repetition group does not
-                            // need error branch, too-
+        // If the alternative is inside an optional group, e.g. ( A | B )?, then
+        // the condition of the group covers all tokens used in the alternative.
+        // Therefore an error check is not required.
+        bool needError = !isFirstChildOfOptGroup(node);
         for (auto n = node.link; n !is null; n = n.link)
         {
             useSwitch &= singleCondition(n);
@@ -168,8 +192,8 @@ public:
                 formattedWrite(sink, "%sgoto %s;\n", ws2, frag.errorLabel);
                 needErrorHandling = true;
                 formattedWrite(sink, "%sbreak;\n", ws2);
-                formattedWrite(sink, "%s}\n", ws);
             }
+            formattedWrite(sink, "%s}\n", ws);
         }
         else
         {
