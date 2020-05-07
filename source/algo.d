@@ -59,7 +59,7 @@ void calculateReachable(Grammar grammar)
 		}
 	}
 
-	mark(grammar.startSymbol);
+	mark(grammar.syntheticStartSymbol);
 }
 
 unittest

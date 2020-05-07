@@ -57,6 +57,7 @@ struct Grammar
 {
     Node[] nodes;
     Node startSymbol;
+    Node syntheticStartSymbol;
     Node eoiTerminal;
 
     auto nonterminals()
@@ -81,34 +82,39 @@ struct GrammarBuilder
     void init(immutable(char)[] buffer)
     {
         data = buffer;
-        /* The following adds a synthetic rule "" = <Symbol> "_eof" .
+    }
+
+    private Node addSyntheticStart(Node startSymbol, Node eoiTerminal)
+    {
+        // The following adds a synthetic rule "" = <Symbol> "_eof" .
         // Create start node. This is always the first node in array.
-        auto start = nonterminal(0, ""); // Index 0
-        auto eofToken = terminal(0, "_eof"); // Index 1
-        auto node = symbol(0, ""); // Index 2
-        start.link = sequence(0); // Index 3
+        auto start = nonterminal(0, "");
+        auto node = symbol(0, startSymbol.name);
+        node.inner = startSymbol;
+        start.link = sequence(0);
         start.link.inner = node;
         start.link.back = start;
-        auto eof = symbol(0, "_eof"); // Index 4
-        node.next = eof;
+        node.next = symbol(0, eoiTerminal.name);
         node.next.back = start.link;
-        assert(nodes.length == 5);
-        */
+        return start;
     }
 
     Grammar finalize()
     {
-        // nodes[2].name = nodes[5].name;
         if (hasErrors) // Bail out if there was a syntax error
             return Grammar();
         auto eoiTerminal = terminal(0, "_eoi", eoiName);
         eoiTerminal.isReachable = true;
+        auto startSymbol = findStartSymbol();
+        auto syntheticStartSymbol = addSyntheticStart(startSymbol, eoiTerminal);
         resolve();
         if (hasErrors) // Bail out if there was a semantic error
             return Grammar();
         foreach (n; nodes)
             n.check;
-        Grammar g = { nodes: nodes, startSymbol: findStartSymbol(), eoiTerminal: eoiTerminal };
+        Grammar g = { nodes: nodes, startSymbol: startSymbol,
+                      syntheticStartSymbol: syntheticStartSymbol,
+                      eoiTerminal: eoiTerminal };
         return g;
     }
 

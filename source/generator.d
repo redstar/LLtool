@@ -24,8 +24,11 @@ void generate(R)(R sink, Grammar grammar, bool wantCPP, string cppClassname) if 
         formattedWrite(sink, "#ifdef %s\n", frag.guardDeclaration);
 	    foreach (node; grammar.nonterminals)
         {
-            gen.reset();
-            gen.rulePrototype(0, node);
+            if (node != grammar.syntheticStartSymbol)
+            {
+                gen.reset();
+                gen.rulePrototype(0, node);
+            }
         }
         formattedWrite(sink, "#endif // of %s\n", frag.guardDeclaration);
         formattedWrite(sink, "#ifdef %s\n", frag.guardDefinition);
@@ -33,12 +36,15 @@ void generate(R)(R sink, Grammar grammar, bool wantCPP, string cppClassname) if 
     bool first = wantCPP;
 	foreach (node; grammar.nonterminals)
     {
-        if (first)
-            first = false;
-        else
-            sink.put("\n");
-        gen.reset();
-        gen.rule(0, node);
+        if (node != grammar.syntheticStartSymbol)
+        {
+            if (first)
+                first = false;
+            else
+                sink.put("\n");
+            gen.reset();
+            gen.rule(0, node);
+        }
     }
     if (wantCPP)
     {
