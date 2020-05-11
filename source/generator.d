@@ -183,7 +183,7 @@ public:
         }
         if (useSwitch)
         {
-            formattedWrite(sink, "%sswitch (%s) {\n", ws, frag.tokenSingleCompare);
+            formattedWrite(sink, "%sswitch (%s) {\n", ws, frag.tokenKind);
             for (auto n = node.link; n !is null; n = n.link)
             {
                 string token = n.firstSet.empty ? n.followSet.front : n.firstSet.front;
@@ -343,13 +343,20 @@ in(set !is null)
         return "false";
     if (set.length == 1)
     {
-        return frag.tokenSingleCompare
-               ~ (negate ? " != " : " == " )
-               ~ frag.tokenName(set.front);
+        if (frag.tokenSingleCompareIsFunc)
+            return (negate ? "!" : "")
+                   ~ frag.tokenSingleCompare
+                   ~ "("
+                   ~ frag.tokenName(set.front)
+                   ~ ")";
+        else
+            return frag.tokenSingleCompare
+                ~ (negate ? " != " : " == " )
+                ~ frag.tokenName(set.front);
     }
     else
     {
-        string c = (negate ? "!" : "") ~ frag.tokenSetMembership;
+        string c = (negate ? "!" : "") ~ frag.tokenSetMembership ~ "(";
         bool first = true;
         foreach (t; set)
         {
@@ -368,7 +375,9 @@ struct Fragment
     enum KWMode { AsIs, AllUpper, AllLower };
     immutable int indentWidth;
     immutable string tokenNamePrefix;
+    immutable string tokenKind;
     immutable string tokenSingleCompare;
+    immutable bool tokenSingleCompareIsFunc;
     immutable string tokenSetMembership;
     immutable string eoiToken;
     immutable string mappedEoiToken;
@@ -506,8 +515,10 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
         immutable auto map = basemap.byPair.chain(externMap.byPair).assocArray;
         Fragment res = { indentWidth: 2,
                          tokenNamePrefix: "tok::",
-                         tokenSingleCompare: "Tok.getKind()",
-                         tokenSetMembership: "Tok.isOneOf(",
+                         tokenKind: "Tok.getKind()",
+                         tokenSingleCompare: "Tok.is",
+                         tokenSingleCompareIsFunc: true,
+                         tokenSetMembership: "Tok.isOneOf",
                          eoiToken: eoi,
                          mappedEoiToken: mappedEoi.length ? mappedEoi : "eoi",
                          advanceFunc: "advance",
@@ -557,8 +568,10 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
         immutable auto map = basemap.byPair.chain(externMap.byPair).assocArray;
         Fragment res = { indentWidth: 4,
                          tokenNamePrefix: "TokenKind.",
+                         tokenKind: "tok.kind",
                          tokenSingleCompare: "tok.kind",
-                         tokenSetMembership: "tok.kind.among(",
+                         tokenSingleCompareIsFunc: false,
+                         tokenSetMembership: "tok.kind.among",
                          eoiToken: eoi,
                          mappedEoiToken: mappedEoi.length ? mappedEoi : "Eoi",
                          advanceFunc: "advance",
