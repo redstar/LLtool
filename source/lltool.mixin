@@ -7,30 +7,30 @@ void parseLltool() {
         parseRule();
     } while (tok.kind == TokenKind.Identifier);
     return;
-_error:
-    while (tok.kind != TokenKind.Eoi)
-        advance();
 }
 
 void parseHeader() {
     while (tok.kind.among(TokenKind.KW_eoi, TokenKind.KW_start, TokenKind.KW_token)) {
-        if (tok.kind == TokenKind.KW_start) {
-            advance();
-            if (expect(TokenKind.Identifier))
-                goto _error;
-            builder.startSymbol(tok.pos, tok.val);
-            advance();
-        }
-        else if (tok.kind == TokenKind.KW_token) {
-            advance();
-            parseTokenlist();
-        }
-        else if (tok.kind == TokenKind.KW_eoi) {
-            advance();
-            if (expect(TokenKind.Identifier))
-                goto _error;
-            builder.eoiSymbol(tok.pos, tok.val);
-            advance();
+        switch (tok.kind) {
+            case TokenKind.KW_start:
+                advance();
+                if (expect(TokenKind.Identifier))
+                    goto _error;
+                builder.startSymbol(tok.pos, tok.val);
+                advance();
+                break;
+            case TokenKind.KW_token:
+                advance();
+                parseTokenlist();
+                break;
+            case TokenKind.KW_eoi:
+                advance();
+                if (expect(TokenKind.Identifier))
+                    goto _error;
+                builder.eoiSymbol(tok.pos, tok.val);
+                advance();
+                break;
+            default: break;
         }
     }
     if (consume(TokenKind.PercentPercent))
@@ -48,20 +48,22 @@ void parseTokenlist() {
         parseTokendecl();
     }
     return;
-_error:
-    while (!tok.kind.among(TokenKind.PercentPercent, TokenKind.Eoi))
-        advance();
 }
 
 void parseTokendecl() {
     size_t pos; string val, ext;
-    if (tok.kind == TokenKind.Identifier) {
-        pos = tok.pos; val = tok.val;
-        advance();
-    }
-    else if (tok.kind == TokenKind.String) {
-        pos = tok.pos; val = tok.val;
-        advance();
+    switch (tok.kind) {
+        case TokenKind.Identifier:
+            pos = tok.pos; val = tok.val;
+            advance();
+            break;
+        case TokenKind.String:
+            pos = tok.pos; val = tok.val;
+            advance();
+            break;
+        default:
+            /*ERROR*/
+            goto _error;
     }
     if (tok.kind == TokenKind.Equal) {
         advance();
@@ -113,7 +115,7 @@ _error:
 void parseRhs(out Node node) {
     parseSequence(node);
     if (tok.kind == TokenKind.Pipe) {
-        node = builder.alternative(node.pos, node);
+        node = builder.alternative(node.pos, node);
                                            auto alt = node.link; alt.back = node;
         do {
             if (consume(TokenKind.Pipe))
@@ -132,33 +134,38 @@ void parseSequence(out Node node) {
     Node last; node = builder.sequence(tok.pos);
     while (tok.kind.among(TokenKind.KW_if, TokenKind.LeftParenthesis, TokenKind.Code, TokenKind.Identifier, TokenKind.String)) {
         Node n;
-        if (tok.kind == TokenKind.LeftParenthesis) {
-            parseGroup(n);
-        }
-        else if (tok.kind == TokenKind.Identifier) {
-            n = builder.symbol(tok.pos, tok.val);
-            advance();
-            if (tok.kind == TokenKind.Argument) {
-                n.actualArgs = tok.val;
+        switch (tok.kind) {
+            case TokenKind.LeftParenthesis:
+                parseGroup(n);
+                break;
+            case TokenKind.Identifier:
+                n = builder.symbol(tok.pos, tok.val);
                 advance();
-            }
-        }
-        else if (tok.kind == TokenKind.String) {
-            n = builder.symbol(tok.pos, tok.val, true);
-            advance();
-        }
-        else if (tok.kind == TokenKind.Code) {
-            n = builder.code(tok.pos, tok.val);
-            advance();
-        }
-        else if (tok.kind == TokenKind.KW_if) {
-            advance();
-            if (expect(TokenKind.Code))
+                if (tok.kind == TokenKind.Argument) {
+                    n.actualArgs = tok.val;
+                    advance();
+                }
+                break;
+            case TokenKind.String:
+                n = builder.symbol(tok.pos, tok.val, true);
+                advance();
+                break;
+            case TokenKind.Code:
+                n = builder.code(tok.pos, tok.val);
+                advance();
+                break;
+            case TokenKind.KW_if:
+                advance();
+                if (expect(TokenKind.Code))
+                    goto _error;
+                n = builder.code(tok.pos, tok.val); n.codeType = CodeType.Condition;
+                advance();
+                break;
+            default:
+                /*ERROR*/
                 goto _error;
-            n = builder.code(tok.pos, tok.val); n.codeType = CodeType.Condition;
-            advance();
         }
-        if (last is null) node.inner = last = n;
+        if (last is null) node.inner = last = n;
                                            else last.next = n, last = n;
     }
     if (last !is null) last.back = node;
@@ -175,20 +182,25 @@ void parseGroup(out Node node) {
     advance();
     parseRhs(node.link);
     node.link.back = node;
-    if (tok.kind == TokenKind.RightParenthesis) {
-        advance();
-    }
-    else if (tok.kind == TokenKind.RightParenthesisQuestion) {
-        node.cardinality = Cardinality.ZeroOrOne;
-        advance();
-    }
-    else if (tok.kind == TokenKind.RightParenthesisStar) {
-        node.cardinality = Cardinality.ZeroOrMore;
-        advance();
-    }
-    else if (tok.kind == TokenKind.RightParenthesisPlus) {
-        node.cardinality = Cardinality.OneOrMore;
-        advance();
+    switch (tok.kind) {
+        case TokenKind.RightParenthesis:
+            advance();
+            break;
+        case TokenKind.RightParenthesisQuestion:
+            node.cardinality = Cardinality.ZeroOrOne;
+            advance();
+            break;
+        case TokenKind.RightParenthesisStar:
+            node.cardinality = Cardinality.ZeroOrMore;
+            advance();
+            break;
+        case TokenKind.RightParenthesisPlus:
+            node.cardinality = Cardinality.OneOrMore;
+            advance();
+            break;
+        default:
+            /*ERROR*/
+            goto _error;
     }
     return;
 _error:

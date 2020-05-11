@@ -197,8 +197,9 @@ public:
                 formattedWrite(sink, "%s/*ERROR*/\n", ws2);
                 formattedWrite(sink, "%sgoto %s;\n", ws2, frag.errorLabel);
                 needErrorHandling = true;
-                formattedWrite(sink, "%sbreak;\n", ws2);
             }
+            else
+                formattedWrite(sink, "%sdefault: break;\n", ws1);
             formattedWrite(sink, "%s}\n", ws);
         }
         else
