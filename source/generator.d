@@ -93,6 +93,8 @@ public:
             formattedWrite(sink, "%s%s:\n", ws(indent), frag.errorLabel);
 
             // Make sure the set contains eoi
+            // TODO: instead of adding eoi, a function skipUntil should
+            //       handle this.
             TerminalSet set;
             if (node.link.followSet.equalRange(frag.eoiToken).empty) {
                 set = new TerminalSet();
@@ -178,7 +180,7 @@ public:
         bool needError = !isFirstChildOfOptGroup(node);
         for (auto n = node.link; n !is null; n = n.link)
         {
-            useSwitch &= singleCondition(n);
+            useSwitch &= singleCondition(n) & n.hasConflict;
             needError &= !n.derivesEpsilon;
         }
         if (useSwitch)
@@ -374,12 +376,14 @@ in(set !is null)
 struct Fragment
 {
     enum KWMode { AsIs, AllUpper, AllLower };
+    enum FirstCharMode { AsIs, FirstUpper };
     immutable int indentWidth;
     immutable string tokenNamePrefix;
     immutable string tokenKind;
     immutable string tokenSingleCompare;
     immutable bool tokenSingleCompareIsFunc;
     immutable string tokenSetMembership;
+    immutable string keywordPrefix;
     immutable string eoiToken;
     immutable string mappedEoiToken;
     immutable string advanceFunc;
@@ -393,6 +397,7 @@ struct Fragment
     immutable dstring[dstring] tokenMappings;
     immutable dstring keywordJoin;
     immutable KWMode kwMode;
+    immutable FirstCharMode tokMode;
 
     string whitespace(size_t width) const
     {
@@ -435,7 +440,7 @@ private:
             {
                 if (first && isAlpha(ch))
                 {
-                    dst = "KW_"d;
+                    dst = keywordPrefix.toUTF32;
                     keyword = true;
                 }
                 first = false;
@@ -458,7 +463,12 @@ private:
         else if (s == eoiToken)
             return mappedEoiToken;
         else
-            return firstToUpper(s);
+            final switch (tokMode)
+            {
+                case FirstCharMode.AsIs: return s;
+                case FirstCharMode.FirstUpper: return firstToUpper(s);
+            }
+
     }
 
     static string firstToUpper(string s)
@@ -520,6 +530,7 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
                          tokenSingleCompare: "Tok.is",
                          tokenSingleCompareIsFunc: true,
                          tokenSetMembership: "Tok.isOneOf",
+                         keywordPrefix: "kw_",
                          eoiToken: eoi,
                          mappedEoiToken: mappedEoi.length ? mappedEoi : "eoi",
                          advanceFunc: "advance",
@@ -533,6 +544,7 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
                          tokenMappings: map,
                          keywordJoin: "_",
                          kwMode: Fragment.KWMode.AsIs,
+                         tokMode: Fragment.FirstCharMode.AsIs,
         };
         return res;
     }
@@ -573,6 +585,7 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
                          tokenSingleCompare: "tok.kind",
                          tokenSingleCompareIsFunc: false,
                          tokenSetMembership: "tok.kind.among",
+                         keywordPrefix: "KW_",
                          eoiToken: eoi,
                          mappedEoiToken: mappedEoi.length ? mappedEoi : "Eoi",
                          advanceFunc: "advance",
@@ -586,6 +599,7 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
                          tokenMappings: map,
                          keywordJoin: "_",
                          kwMode: Fragment.KWMode.AsIs,
+                         tokMode: Fragment.FirstCharMode.FirstUpper,
       };
        return res;
     }
