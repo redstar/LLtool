@@ -299,6 +299,16 @@ public:
         {
             formattedWrite(sink, "%s%s\n", ws(indent), node.code);
         }
+        else if (node.codeType == CodeType.Condition)
+        {
+            const ws1 = ws(indent+1);
+            const ws = ws(indent);
+            formattedWrite(sink, "%s if (!(%s)) {\n", ws, node.code);
+            formattedWrite(sink, "%s/* ERROR */\n", ws1);
+            formattedWrite(sink, "%sgoto %s;\n", ws1, frag.errorLabel);
+            needErrorHandling = true;
+            formattedWrite(sink, "%s}\n", ws);
+        }
     }
 
 private:
