@@ -58,7 +58,7 @@ void main(string[] args)
 	{
 		string inputFilename = args[1];
 		string outputFilename = output.length > 0 ? output
-		                                          : inputFilename.setExtension(generateCPP ? "def" : "mixin");
+		                                          : inputFilename.setExtension(generateCPP ? "inc" : "mixin");
 
 		string content = readText(inputFilename);
 		auto lexer = Lexer(content);
