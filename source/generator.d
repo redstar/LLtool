@@ -85,8 +85,10 @@ public:
     void rule(size_t indent, Node node)
     {
         formattedWrite(sink, "%svoid %s(%s) {\n", ws(indent), frag.funcName!true(node.name), node.formalArgs);
-        alternativeOrSequence(indent+1, node.link);
-        formattedWrite(sink, "%sreturn;\n", ws(indent+1));
+        formattedWrite(sink, "%s{\n", ws(indent+1));
+        alternativeOrSequence(indent+2, node.link);
+        formattedWrite(sink, "%sreturn;\n", ws(indent+2));
+        formattedWrite(sink, "%s}\n", ws(indent+1));
 
         if (needErrorHandling)
         {
