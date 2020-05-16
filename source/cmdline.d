@@ -30,6 +30,9 @@ string cppClassname;
 /// Generate report.
 bool xref;
 
+/// Should switch statements generated?
+bool generateSwitch;
+
 /**
  * Parses the commandline.
  *
@@ -48,6 +51,7 @@ bool parseCmdLine(ref string[] args)
 			"cpp", "Generate C++ source", &generateCPP,
 			"cppclass", "Name of generated C++ class", &cppClassname,
 			"debug|d", "Enable debug output", &debugging,
+			"gen-switch", "Generate switch() statements", &generateSwitch,
 			"o", "The name of output file", &output,
 			"w", "Treat warnings are errors", &warningsAreErrors,
 			"x|xref", "Print listing of grammar", &xref,

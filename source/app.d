@@ -86,7 +86,11 @@ void main(string[] args)
 
 		auto sink = Sink(outputFilename);
 		scope(exit) sink.close();
-		generate(sink, grammar, generateCPP, cppClassname);
+		SourceOptions so = { lang: generateCPP ? SourceOptions.Language.CPP
+		                                       : SourceOptions.Language.D,
+		                     useSwitch: generateSwitch,
+							 name: cppClassname };
+		generate(sink, grammar, so);
 
 		if (xref)
 			printReport(grammar);

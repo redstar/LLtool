@@ -15,10 +15,19 @@ import std.algorithm : among;
 import std.format : formattedWrite;
 import std.range : isOutputRange;
 
-void generate(R)(R sink, Grammar grammar, bool wantCPP, string cppClassname) if (isOutputRange!(R, string))
+struct SourceOptions
 {
-    const Fragment frag = getFragment(grammar, wantCPP, cppClassname);
+    enum Language { D, CPP };
+    Language lang = Language.D;
+    bool useSwitch = false;
+    string name = "";
+}
+
+void generate(R)(R sink, Grammar grammar, const SourceOptions so) if (isOutputRange!(R, string))
+{
+    const Fragment frag = getFragment(grammar, so);
     auto gen = CodeGen!(R)(sink, frag);
+    const bool wantCPP = so.lang == SourceOptions.Language.CPP;
     if (wantCPP)
     {
         formattedWrite(sink, "#ifdef %s\n", frag.guardDeclaration);
@@ -175,14 +184,14 @@ public:
         const ws2 = ws(indent+2);
         const ws1 = ws(indent+1);
         const ws = ws(indent);
-        bool useSwitch = true; // useSwitch == true <=> max. 2 tokens, no predicate
+        bool useSwitch = frag.useSwitch;
         // If the alternative is inside an optional group, e.g. ( A | B )?, then
         // the condition of the group covers all tokens used in the alternative.
         // Therefore an error check is not required.
         bool needError = !isFirstChildOfOptGroup(node);
         for (auto n = node.link; n !is null; n = n.link)
         {
-            useSwitch &= singleCondition(n) & n.hasConflict;
+            useSwitch &= singleCondition(n) & !n.hasConflict;
             needError &= !n.derivesEpsilon;
         }
         if (useSwitch)
@@ -191,8 +200,9 @@ public:
             for (auto n = node.link; n !is null; n = n.link)
             {
                 string token = n.firstSet.empty ? n.followSet.front : n.firstSet.front;
-                formattedWrite(sink, "%scase %s:\n", ws1, frag.tokenName(token));
+                formattedWrite(sink, "%scase %s: {\n", ws1, frag.tokenName(token));
                 sequence(indent+2, n, true);
+                formattedWrite(sink, "%s}\n", ws2);
                 formattedWrite(sink, "%sbreak;\n", ws2);
             }
             if (needError)
@@ -390,6 +400,7 @@ struct Fragment
     enum KWMode { AsIs, AllUpper, AllLower };
     enum FirstCharMode { AsIs, FirstUpper };
     immutable int indentWidth;
+    immutable bool useSwitch;
     immutable string tokenNamePrefix;
     immutable string tokenKind;
     immutable string tokenSingleCompare;
@@ -494,7 +505,7 @@ private:
     }
 }
 
-Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
+Fragment getFragment(Grammar grammar, const ref SourceOptions so)
 {
     import std.array: byPair, assocArray;
     import std.range: chain;
@@ -502,10 +513,10 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
     immutable string eoi = grammar.eoiTerminal.name;
     immutable string mappedEoi = grammar.eoiTerminal.externalName;
     dstring[dstring] externMap = findExternalNames(grammar);
-    if (cpp)
+    if (so.lang == SourceOptions.Language.CPP)
     {
         import std.string : toUpper;
-        immutable string guard = cppclass.length > 0 ? cppclass.toUpper : "PARSER";
+        immutable string guard = so.name.length > 0 ? so.name.toUpper : "PARSER";
         immutable dstring[dstring] basemap = [  "..": "ellipsis",
                                                 ".": "period",
                                                 "|": "pipe",
@@ -537,6 +548,7 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
                                             ];
         immutable auto map = basemap.byPair.chain(externMap.byPair).assocArray;
         Fragment res = { indentWidth: 2,
+                         useSwitch: so.useSwitch,
                          tokenNamePrefix: "tok::",
                          tokenKind: "Tok.getKind()",
                          tokenSingleCompare: "Tok.is",
@@ -548,7 +560,7 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
                          advanceFunc: "advance",
                          consumeFunc: "consume",
                          expectFunc: "expect",
-                         classNamePrefix: cppclass.length ?  cppclass ~ "::" : "",
+                         classNamePrefix: so.name.length ?  so.name ~ "::" : "",
                          funcNamePrefix: "parse",
                          errorLabel: "_error",
                          guardDeclaration: guard ~ "_DECLARATION",
@@ -592,6 +604,7 @@ Fragment getFragment(Grammar grammar, bool cpp, string cppclass)
                                             ];
         immutable auto map = basemap.byPair.chain(externMap.byPair).assocArray;
         Fragment res = { indentWidth: 4,
+                         useSwitch: so.useSwitch,
                          tokenNamePrefix: "TokenKind.",
                          tokenKind: "tok.kind",
                          tokenSingleCompare: "tok.kind",
