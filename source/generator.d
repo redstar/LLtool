@@ -88,35 +88,38 @@ public:
     in(node.type == NodeType.Nonterminal)
     {
         const ws = ws(indent);
-        formattedWrite(sink, "%svoid %s(%s);\n", ws, frag.funcName(node.name), node.formalArgs);
+        formattedWrite(sink, "%sbool %s(%s);\n", ws, frag.funcName(node.name), node.formalArgs);
     }
 
     void rule(size_t indent, Node node)
     {
-        formattedWrite(sink, "%svoid %s(%s) {\n", ws(indent), frag.funcName!true(node.name), node.formalArgs);
+        formattedWrite(sink, "%sbool %s(%s) {\n", ws(indent), frag.funcName!true(node.name), node.formalArgs);
         formattedWrite(sink, "%s{\n", ws(indent+1));
         alternativeOrSequence(indent+2, node.link);
-        formattedWrite(sink, "%sreturn;\n", ws(indent+2));
+        formattedWrite(sink, "%sreturn false;\n", ws(indent+2));
         formattedWrite(sink, "%s}\n", ws(indent+1));
 
         if (needErrorHandling)
         {
             formattedWrite(sink, "%s%s:\n", ws(indent), frag.errorLabel);
 
-            // Make sure the set contains eoi
-            // TODO: instead of adding eoi, a function skipUntil should
-            //       handle this.
-            TerminalSet set;
-            if (node.link.followSet.equalRange(frag.eoiToken).empty) {
-                set = new TerminalSet();
-                set.insert(node.link.followSet[]);
-                set.insert(frag.eoiToken);
-            }
-            else
-                set = node.link.followSet;
+            // Make sure we stop at eoi.
+            TerminalSet set = node.link.followSet;
+            bool noEoi = set.equalRange(frag.eoiToken).empty;
 
-            formattedWrite(sink, "%swhile (%s)\n", ws(indent+1), condition!true(frag, set));
+            formattedWrite(sink, "%swhile (%s) {\n", ws(indent+1), condition!true(frag, set));
             formattedWrite(sink, "%s%s();\n", ws(indent+2), frag.advanceFunc);
+            if (noEoi)
+            {
+                string cmp = frag.tokenSingleCompare;
+                if (frag.tokenSingleCompareIsFunc)
+                    cmp ~= "(" ~ frag.tokenName(frag.eoiToken) ~ ")";
+                else
+                    cmp =  frag.tokenSingleCompare ~ " == " ~ frag.tokenName(frag.eoiToken);
+                formattedWrite(sink, "%sif (%s) return true;\n", ws(indent+2), cmp);
+            }
+            formattedWrite(sink, "%s}\n", ws(indent+1));
+            formattedWrite(sink, "%sreturn false;\n", ws(indent+1));
         }
         formattedWrite(sink, "%s}\n", ws(indent));
     }
@@ -287,7 +290,9 @@ public:
         const ws = ws(indent);
         if (node.inner.type == NodeType.Nonterminal)
         {
-            formattedWrite(sink, "%s%s(%s);\n", ws, frag.funcName(node.name), node.actualArgs);
+            formattedWrite(sink, "%s if (%s(%s))\n", ws, frag.funcName(node.name), node.actualArgs);
+            formattedWrite(sink, "%s%sgoto %s;\n", ws, frag.whitespace(1), frag.errorLabel);
+            needErrorHandling = true;
             return false;
         }
         else
