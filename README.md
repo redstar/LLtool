@@ -29,7 +29,7 @@ The input for syntax LLtool is similar to yacc/bison. It has the following speci
     %%
     lltool : ( header )? ( rule )+ ;
 
-    header : ( "%start" identifier | "%token" tokenlist | "%eoi" identifier )* "%%" ;
+    header : ( "%start" identifier | "%token" tokenlist | "%language" string | "%eoi" identifier )* "%%" ;
 
     tokenlist : tokendecl ("," tokendecl )* ;
 

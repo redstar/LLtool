@@ -39,6 +39,7 @@ enum TokenKind : uint
     PercentPercent,
     KW_eoi,
     KW_if,
+    KW_language,
     KW_start,
     KW_token,
     Eoi,
@@ -65,7 +66,8 @@ string displayName(TokenKind kind)
         case TokenKind.RightParenthesisPlus: return ")+";
         case TokenKind.PercentPercent: return "%%";
         case TokenKind.KW_eoi: return "%eoi";
-        case TokenKind.KW_if: return "%sif";
+        case TokenKind.KW_if: return "%if";
+        case TokenKind.KW_language: return "%language";
         case TokenKind.KW_start: return "%start";
         case TokenKind.KW_token: return "%token";
         case TokenKind.Eoi: return "end-of-input";
@@ -217,6 +219,8 @@ repeat:
             return Token(TokenKind.KW_eoi, pos, cur-pos, val);
         if (val == "%if")
             return Token(TokenKind.KW_if, pos, cur-pos, val);
+        if (val == "%language")
+            return Token(TokenKind.KW_language, pos, cur-pos, val);
         if (val == "%start")
             return Token(TokenKind.KW_start, pos, cur-pos, val);
         if (val == "%token")

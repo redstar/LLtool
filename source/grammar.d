@@ -60,6 +60,8 @@ struct Grammar
     Node syntheticStartSymbol;
     Node eoiTerminal;
 
+    string language;
+
     auto nonterminals()
     {
         return filter!(n => n.type == NodeType.Nonterminal)(nodes);
@@ -76,6 +78,8 @@ struct GrammarBuilder
 
     size_t eoiPos;
     string eoiName;
+
+    string lang;
 
     Node[string] terminals;
 
@@ -114,7 +118,8 @@ struct GrammarBuilder
             n.check;
         Grammar g = { nodes: nodes, startSymbol: startSymbol,
                       syntheticStartSymbol: syntheticStartSymbol,
-                      eoiTerminal: eoiTerminal };
+                      eoiTerminal: eoiTerminal,
+                      language: lang.length ? lang : "d" };
         return g;
     }
 
@@ -273,6 +278,28 @@ struct GrammarBuilder
         {
             eoiPos = pos;
             eoiName = name;
+        }
+    }
+
+    void language(size_t pos, string name)
+    {
+        import std.uni : toLower;
+
+        if (lang.length)
+        {
+            warning(data, pos, "Language is already defined. Ignoring new definition.");
+        }
+        else
+        {
+            name = name[1..$-1].toLower;
+            if (name != "d" && name != "c++")
+            {
+                warning(data, pos, "Unknonw language " ~ name ~ ". Ignoring definition.");
+            }
+            else
+            {
+                lang = name;
+            }
         }
     }
 }

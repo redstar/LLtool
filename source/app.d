@@ -86,10 +86,12 @@ void main(string[] args)
 
 		auto sink = Sink(outputFilename);
 		scope(exit) sink.close();
-		SourceOptions so = { lang: generateCPP ? SourceOptions.Language.CPP
+		SourceOptions so = { lang: grammar.language == "c++"
+		                                       ? SourceOptions.Language.CPP
 		                                       : SourceOptions.Language.D,
 		                     useSwitch: generateSwitch,
 							 name: cppClassname };
+        if (generateCPP) so.lang = SourceOptions.Language.CPP;
 		generate(sink, grammar, so);
 
 		if (xref)

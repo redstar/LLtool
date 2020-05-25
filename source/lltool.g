@@ -1,7 +1,8 @@
 /* Grammar for LLtool */
+%language "d"
 %token identifier, code, argument, string
 %token "%token" = KW_token, "%start" = KW_start, "%eoi" = KW_eoi
-%token "%if" = KW_if
+%token "%language" = KW_language, "%if" = KW_if
 %start lltool
 %%
 lltool
@@ -10,6 +11,7 @@ lltool
 header
   : ("%start" identifier                {. builder.startSymbol(tok.pos, tok.val); .}
      | "%token" tokenlist
+     | "%language" string               {. builder.language(tok.pos, tok.val); .}
      | "%eoi" identifier                {. builder.eoiSymbol(tok.pos, tok.val); .}
     )*
     "%%"
