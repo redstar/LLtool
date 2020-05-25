@@ -11,7 +11,7 @@
 module report;
 
 import grammar;
-import std.algorithm : filter;
+import std.algorithm : count, filter;
 import std.stdio;
 
 void printReport(Grammar grammar)
@@ -19,7 +19,13 @@ void printReport(Grammar grammar)
     writeln("Analyzing results");
     writeln("=================");
     writeln();
-    writeln("Nonterminals");
+    writeln("Summary");
+    writeln("-------");
+    writeln();
+    writefln("Non-terminals: %d (including synthetic start symbol)", count(filter!(n => n.type == NodeType.Nonterminal)(grammar.nodes)));
+    writefln("Terminals: %d", count(filter!(n => n.type == NodeType.Terminal)(grammar.nodes)));
+    writeln();
+    writeln("Non-terminals");
     writeln("------------");
     writeln();
 	foreach (node; filter!(n => n.type == NodeType.Nonterminal)(grammar.nodes))
@@ -36,7 +42,7 @@ void printReport(Grammar grammar)
     }
     writeln();
     writeln("First sets");
-    writeln("---------");
+    writeln("----------");
     writeln();
 	foreach (node; filter!(n => n.type == NodeType.Nonterminal)(grammar.nodes))
     {
@@ -66,7 +72,7 @@ void printReport(Grammar grammar)
     }
     writeln();
     writeln("Follow sets");
-    writeln("---------");
+    writeln("-----------");
     writeln();
 	foreach (node; filter!(n => n.type == NodeType.Nonterminal)(grammar.nodes))
     {

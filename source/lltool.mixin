@@ -1,17 +1,24 @@
 
-void parseLltool() {
+bool parseLltool() {
     {
         if (tok.kind.among(TokenKind.PercentPercent, TokenKind.KW_eoi, TokenKind.KW_language, TokenKind.KW_start, TokenKind.KW_token)) {
-            parseHeader();
+             if (parseHeader())
+                goto _error;
         }
         do {
-            parseRule();
+             if (parseRule())
+                goto _error;
         } while (tok.kind == TokenKind.Identifier);
-        return;
+        return false;
     }
+_error:
+    while (tok.kind != TokenKind.Eoi) {
+        advance();
+    }
+    return false;
 }
 
-void parseHeader() {
+bool parseHeader() {
     {
         while (tok.kind.among(TokenKind.KW_eoi, TokenKind.KW_language, TokenKind.KW_start, TokenKind.KW_token)) {
             if (tok.kind == TokenKind.KW_start) {
@@ -23,7 +30,8 @@ void parseHeader() {
             }
             else if (tok.kind == TokenKind.KW_token) {
                 advance();
-                parseTokenlist();
+                 if (parseTokenlist())
+                    goto _error;
             }
             else if (tok.kind == TokenKind.KW_language) {
                 advance();
@@ -42,25 +50,36 @@ void parseHeader() {
         }
         if (consume(TokenKind.PercentPercent))
             goto _error;
-        return;
+        return false;
     }
 _error:
-    while (!tok.kind.among(TokenKind.Eoi, TokenKind.Identifier))
+    while (tok.kind != TokenKind.Identifier) {
         advance();
+        if (tok.kind == TokenKind.Eoi) return true;
+    }
+    return false;
 }
 
-void parseTokenlist() {
+bool parseTokenlist() {
     {
-        parseTokendecl();
+         if (parseTokendecl())
+            goto _error;
         while (tok.kind == TokenKind.Comma) {
             advance();
-            parseTokendecl();
+             if (parseTokendecl())
+                goto _error;
         }
-        return;
+        return false;
     }
+_error:
+    while (tok.kind != TokenKind.PercentPercent) {
+        advance();
+        if (tok.kind == TokenKind.Eoi) return true;
+    }
+    return false;
 }
 
-void parseTokendecl() {
+bool parseTokendecl() {
     {
         size_t pos; string val, ext;
         if (tok.kind == TokenKind.Identifier) {
@@ -83,31 +102,38 @@ void parseTokendecl() {
             advance();
         }
         builder.terminal(pos, val, ext);
-        return;
+        return false;
     }
 _error:
-    while (!tok.kind.among(TokenKind.PercentPercent, TokenKind.Comma, TokenKind.Eoi))
+    while (!tok.kind.among(TokenKind.PercentPercent, TokenKind.Comma)) {
         advance();
+        if (tok.kind == TokenKind.Eoi) return true;
+    }
+    return false;
 }
 
-void parseRule() {
+bool parseRule() {
     {
         Node node;
-        parseNonterminal(node);
+         if (parseNonterminal(node))
+            goto _error;
         if (consume(TokenKind.Colon))
             goto _error;
-        parseRhs(node.link);
+         if (parseRhs(node.link))
+            goto _error;
         node.link.back = node;
         if (consume(TokenKind.Semi))
             goto _error;
-        return;
+        return false;
     }
 _error:
-    while (!tok.kind.among(TokenKind.Eoi, TokenKind.Identifier))
+    while (!tok.kind.among(TokenKind.Eoi, TokenKind.Identifier)) {
         advance();
+    }
+    return false;
 }
 
-void parseNonterminal(out Node node) {
+bool parseNonterminal(out Node node) {
     {
         if (expect(TokenKind.Identifier))
             goto _error;
@@ -120,40 +146,49 @@ void parseNonterminal(out Node node) {
         if (tok.kind == TokenKind.Code) {
             advance();
         }
-        return;
+        return false;
     }
 _error:
-    while (!tok.kind.among(TokenKind.Colon, TokenKind.Eoi))
+    while (tok.kind != TokenKind.Colon) {
         advance();
+        if (tok.kind == TokenKind.Eoi) return true;
+    }
+    return false;
 }
 
-void parseRhs(out Node node) {
+bool parseRhs(out Node node) {
     {
-        parseSequence(node);
+         if (parseSequence(node))
+            goto _error;
         if (tok.kind == TokenKind.Pipe) {
             node = builder.alternative(node.pos, node);
                                            auto alt = node.link; alt.back = node;
             do {
                 if (consume(TokenKind.Pipe))
                     goto _error;
-                parseSequence(alt.link);
+                 if (parseSequence(alt.link))
+                    goto _error;
                 alt = alt.link; alt.back = node;
             } while (tok.kind == TokenKind.Pipe);
         }
-        return;
+        return false;
     }
 _error:
-    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Eoi))
+    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi)) {
         advance();
+        if (tok.kind == TokenKind.Eoi) return true;
+    }
+    return false;
 }
 
-void parseSequence(out Node node) {
+bool parseSequence(out Node node) {
     {
         Node last; node = builder.sequence(tok.pos);
         while (tok.kind.among(TokenKind.KW_if, TokenKind.LeftParenthesis, TokenKind.Code, TokenKind.Identifier, TokenKind.String)) {
             Node n;
             if (tok.kind == TokenKind.LeftParenthesis) {
-                parseGroup(n);
+                 if (parseGroup(n))
+                    goto _error;
             }
             else if (tok.kind == TokenKind.Identifier) {
                 n = builder.symbol(tok.pos, tok.val);
@@ -186,20 +221,24 @@ void parseSequence(out Node node) {
                                            else last.next = n, last = n;
         }
         if (last !is null) last.back = node;
-        return;
+        return false;
     }
 _error:
-    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe, TokenKind.Eoi))
+    while (!tok.kind.among(TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe)) {
         advance();
+        if (tok.kind == TokenKind.Eoi) return true;
+    }
+    return false;
 }
 
-void parseGroup(out Node node) {
+bool parseGroup(out Node node) {
     {
         if (expect(TokenKind.LeftParenthesis))
             goto _error;
         node = builder.group(tok.pos, Cardinality.One);
         advance();
-        parseRhs(node.link);
+         if (parseRhs(node.link))
+            goto _error;
         node.link.back = node;
         if (tok.kind == TokenKind.RightParenthesis) {
             advance();
@@ -220,9 +259,12 @@ void parseGroup(out Node node) {
             /*ERROR*/
             goto _error;
         }
-        return;
+        return false;
     }
 _error:
-    while (!tok.kind.among(TokenKind.KW_if, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe, TokenKind.Eoi, TokenKind.Code, TokenKind.Identifier, TokenKind.String))
+    while (!tok.kind.among(TokenKind.KW_if, TokenKind.LeftParenthesis, TokenKind.RightParenthesis, TokenKind.RightParenthesisStar, TokenKind.RightParenthesisPlus, TokenKind.RightParenthesisQuestion, TokenKind.Semi, TokenKind.Pipe, TokenKind.Code, TokenKind.Identifier, TokenKind.String)) {
         advance();
+        if (tok.kind == TokenKind.Eoi) return true;
+    }
+    return false;
 }
