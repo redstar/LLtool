@@ -52,13 +52,11 @@ static assert(isOutputRange!(Sink, string));
 void main(string[] args)
 {
 	if (!parseCmdLine(args))
-		return ;
+		return;
 
 	try
 	{
 		string inputFilename = args[1];
-		string outputFilename = output.length > 0 ? output
-		                                          : inputFilename.setExtension(generateCPP ? "inc" : "mixin");
 
 		string content = readText(inputFilename);
 		auto lexer = Lexer(content);
@@ -69,29 +67,36 @@ void main(string[] args)
 			write(inputFilename.setExtension("dot"), grammar.toGraphviz);
 		}
 		if (hasErrors)
-			return ;
+			return;
 
 		calculateReachable(grammar);
 		calculateDerivesEpsilon(grammar);
 		calculateProductive(grammar);
 		checkGrammar(content, grammar);
 		if (hasErrors)
-			return ;
+			return;
 
 		calculateFirstSets(grammar);
 		calculateFollowSets(grammar);
 		checkLL(content, grammar);
 		if (hasErrors)
-			return ;
+			return;
+
+		SourceOptions so = {
+			lang: grammar.language == "c++"
+				? SourceOptions.Language.CPP : SourceOptions.Language.D,
+			useSwitch: generateSwitch, name: cppClassname
+		};
+		if (generateCPP)
+			so.lang = SourceOptions.Language.CPP;
+
+		string outputFilename = output.length > 0 ? output
+			: inputFilename.setExtension(so.lang == SourceOptions.Language.CPP
+					? "inc" : "mixin");
 
 		auto sink = Sink(outputFilename);
-		scope(exit) sink.close();
-		SourceOptions so = { lang: grammar.language == "c++"
-		                                       ? SourceOptions.Language.CPP
-		                                       : SourceOptions.Language.D,
-		                     useSwitch: generateSwitch,
-							 name: cppClassname };
-        if (generateCPP) so.lang = SourceOptions.Language.CPP;
+		scope (exit)
+			sink.close();
 		generate(sink, grammar, so);
 
 		if (xref)
