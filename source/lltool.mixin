@@ -1,7 +1,7 @@
 
 bool parseLltool() {
     {
-        if (tok.kind.among(TokenKind.PercentPercent, TokenKind.KW_eoi, TokenKind.KW_language, TokenKind.KW_start, TokenKind.KW_token)) {
+        if (tok.kind.among(TokenKind.PercentPercent, TokenKind.KW_define, TokenKind.KW_eoi, TokenKind.KW_language, TokenKind.KW_start, TokenKind.KW_token)) {
              if (parseHeader())
                 goto _error;
         }
@@ -20,7 +20,7 @@ _error:
 
 bool parseHeader() {
     {
-        while (tok.kind.among(TokenKind.KW_eoi, TokenKind.KW_language, TokenKind.KW_start, TokenKind.KW_token)) {
+        while (tok.kind.among(TokenKind.KW_define, TokenKind.KW_eoi, TokenKind.KW_language, TokenKind.KW_start, TokenKind.KW_token)) {
             if (tok.kind == TokenKind.KW_start) {
                 advance();
                 if (expect(TokenKind.Identifier))
@@ -39,6 +39,45 @@ bool parseHeader() {
                     goto _error;
                 builder.language(tok.pos, tok.val);
                 advance();
+            }
+            else if (tok.kind == TokenKind.KW_define) {
+                size_t pos; string ident, value; VarKind kind = VarKind.Flag;
+                advance();
+                pos = tok.pos; ident = tok.val;
+                if (tok.kind == TokenKind.Identifier) {
+                    advance();
+                }
+                else if (tok.kind == TokenKind.Qualidentifier) {
+                    advance();
+                }
+                else {
+                    /*ERROR*/
+                    goto _error;
+                }
+                if (tok.kind.among(TokenKind.Code, TokenKind.Identifier, TokenKind.Qualidentifier, TokenKind.String)) {
+                    value = tok.val;
+                    if (tok.kind == TokenKind.Code) {
+                        kind = VarKind.Code;
+                        advance();
+                    }
+                    else if (tok.kind == TokenKind.Identifier) {
+                        kind = VarKind.Identifier;
+                        advance();
+                    }
+                    else if (tok.kind == TokenKind.Qualidentifier) {
+                        kind = VarKind.Identifier;
+                        advance();
+                    }
+                    else if (tok.kind == TokenKind.String) {
+                        kind = VarKind.String;
+                        advance();
+                    }
+                    else {
+                        /*ERROR*/
+                        goto _error;
+                    }
+                }
+                builder.define(pos, ident, kind, value);
             }
             else if (tok.kind == TokenKind.KW_eoi) {
                 advance();

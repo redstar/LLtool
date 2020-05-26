@@ -23,6 +23,7 @@ private alias CASE = Tuple!(char, "key", TokenKind, "value");
 enum TokenKind : uint
 {
     Identifier,
+    Qualidentifier,
     String,
     Argument,
     Code,
@@ -37,6 +38,7 @@ enum TokenKind : uint
     RightParenthesisStar,
     RightParenthesisPlus,
     PercentPercent,
+    KW_define,
     KW_eoi,
     KW_if,
     KW_language,
@@ -51,6 +53,7 @@ string displayName(TokenKind kind)
     final switch (kind)
     {
         case TokenKind.Identifier: return "identifier";
+        case TokenKind.Qualidentifier: return "qualidentifier";
         case TokenKind.String: return "string";
         case TokenKind.Argument: return "argument";
         case TokenKind.Code: return "code";
@@ -65,6 +68,7 @@ string displayName(TokenKind kind)
         case TokenKind.RightParenthesisStar: return ")*";
         case TokenKind.RightParenthesisPlus: return ")+";
         case TokenKind.PercentPercent: return "%%";
+        case TokenKind.KW_define: return "%define";
         case TokenKind.KW_eoi: return "%eoi";
         case TokenKind.KW_if: return "%if";
         case TokenKind.KW_language: return "%language";
@@ -202,11 +206,16 @@ repeat:
 
     Token identifier()
     {
+        bool qualified = false;
         auto pos = cur++;
-        while (cur < data.length && (isAlphaNum(data[cur]) || data[cur] == '_'))
+        while (cur < data.length && (isAlphaNum(data[cur])
+               || data[cur] == '_' || data[cur] == '.'))
+        {
+            if (data[cur] == '.') qualified = true;
             ++cur;
+        }
         auto val = data[pos..cur];
-        return Token(TokenKind.Identifier, pos, cur-pos, val);
+        return Token(qualified ? TokenKind.Qualidentifier : TokenKind.Identifier, pos, cur-pos, val);
     }
 
     Token keyword()
@@ -215,6 +224,8 @@ repeat:
         while (cur < data.length && isAlpha(data[cur]))
             ++cur;
         auto val = data[pos..cur];
+        if (val == "%define")
+            return Token(TokenKind.KW_define, pos, cur-pos, val);
         if (val == "%eoi")
             return Token(TokenKind.KW_eoi, pos, cur-pos, val);
         if (val == "%if")

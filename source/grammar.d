@@ -46,6 +46,7 @@ struct Node
 */
 
 import diagnostics;
+import variables;
 //import std.bitmanip;
 import std.algorithm : among, filter;
 import std.container.rbtree;
@@ -60,7 +61,7 @@ struct Grammar
     Node syntheticStartSymbol;
     Node eoiTerminal;
 
-    string language;
+    VariableStore variables;
 
     auto nonterminals()
     {
@@ -79,7 +80,7 @@ struct GrammarBuilder
     size_t eoiPos;
     string eoiName;
 
-    string lang;
+    VariableStore variables;
 
     Node[string] terminals;
 
@@ -119,7 +120,7 @@ struct GrammarBuilder
         Grammar g = { nodes: nodes, startSymbol: startSymbol,
                       syntheticStartSymbol: syntheticStartSymbol,
                       eoiTerminal: eoiTerminal,
-                      language: lang.length ? lang : "d" };
+                      variables: variables };
         return g;
     }
 
@@ -285,7 +286,7 @@ struct GrammarBuilder
     {
         import std.uni : toLower;
 
-        if (lang.length)
+        if (variables.get(VarName.Language).length)
         {
             warning(data, pos, "Language is already defined. Ignoring new definition.");
         }
@@ -298,9 +299,16 @@ struct GrammarBuilder
             }
             else
             {
-                lang = name;
+                variables.set(VarName.Language, name);
             }
         }
+    }
+
+    void define(size_t pos, string name, VarKind kind, string value)
+    {
+        string msg;
+        if (variables.set(name, value, kind, msg))
+            error(data, pos, msg);
     }
 }
 

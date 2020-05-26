@@ -17,6 +17,7 @@ import cmdline;
 import diagnostics;
 import graphviz;
 import report;
+import variables;
 import verify;
 import std.file : write, readText, FileException;
 import std.path : setExtension;
@@ -82,22 +83,21 @@ void main(string[] args)
 		if (hasErrors)
 			return;
 
-		SourceOptions so = {
-			lang: grammar.language == "c++"
-				? SourceOptions.Language.CPP : SourceOptions.Language.D,
-			useSwitch: generateSwitch, name: cppClassname
-		};
 		if (generateCPP)
-			so.lang = SourceOptions.Language.CPP;
+			grammar.variables.set(VarName.Language, "c++");
+		if (cppClassname.length)
+			grammar.variables.set(VarName.ApiParserClass, cppClassname);
+		if (generateSwitch)
+			grammar.variables.set(VarName.CodePreferSwitch, "true");
 
 		string outputFilename = output.length > 0 ? output
-			: inputFilename.setExtension(so.lang == SourceOptions.Language.CPP
+			: inputFilename.setExtension(grammar.variables.get(VarName.Language) == "c++"
 					? "inc" : "mixin");
 
 		auto sink = Sink(outputFilename);
 		scope (exit)
 			sink.close();
-		generate(sink, grammar, so);
+		generate(sink, grammar);
 
 		if (xref)
 			printReport(grammar);

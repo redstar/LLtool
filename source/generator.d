@@ -11,23 +11,16 @@
 module generator;
 
 import grammar;
+import variables;
 import std.algorithm : among;
 import std.format : formattedWrite;
 import std.range : isOutputRange;
 
-struct SourceOptions
+void generate(R)(R sink, Grammar grammar) if (isOutputRange!(R, string))
 {
-    enum Language { D, CPP };
-    Language lang = Language.D;
-    bool useSwitch = false;
-    string name = "";
-}
-
-void generate(R)(R sink, Grammar grammar, const SourceOptions so) if (isOutputRange!(R, string))
-{
-    const Fragment frag = getFragment(grammar, so);
+    const Fragment frag = getFragment(grammar);
     auto gen = CodeGen!(R)(sink, frag);
-    const bool wantCPP = so.lang == SourceOptions.Language.CPP;
+    const bool wantCPP = grammar.variables.get(VarName.Language) == "c++";
     if (wantCPP)
     {
         formattedWrite(sink, "#ifdef %s\n", frag.guardDeclaration);
@@ -187,7 +180,7 @@ public:
         const ws2 = ws(indent+2);
         const ws1 = ws(indent+1);
         const ws = ws(indent);
-        bool useSwitch = frag.useSwitch;
+        bool useSwitch = frag.preferSwitch;
         // If the alternative is inside an optional group, e.g. ( A | B )?, then
         // the condition of the group covers all tokens used in the alternative.
         // Therefore an error check is not required.
@@ -405,7 +398,7 @@ struct Fragment
     enum KWMode { AsIs, AllUpper, AllLower };
     enum FirstCharMode { AsIs, FirstUpper };
     immutable int indentWidth;
-    immutable bool useSwitch;
+    immutable bool preferSwitch;
     immutable string tokenNamePrefix;
     immutable string tokenKind;
     immutable string tokenSingleCompare;
@@ -510,7 +503,7 @@ private:
     }
 }
 
-Fragment getFragment(Grammar grammar, const ref SourceOptions so)
+Fragment getFragment(Grammar grammar)
 {
     import std.array: byPair, assocArray;
     import std.range: chain;
@@ -518,10 +511,15 @@ Fragment getFragment(Grammar grammar, const ref SourceOptions so)
     immutable string eoi = grammar.eoiTerminal.name;
     immutable string mappedEoi = grammar.eoiTerminal.externalName;
     dstring[dstring] externMap = findExternalNames(grammar);
-    if (so.lang == SourceOptions.Language.CPP)
+
+    immutable string cppClass = grammar.variables.get(VarName.ApiParserClass);
+    immutable string funcNamePrefix = grammar.variables.get(VarName.ApiSymbolPrefix);
+    immutable bool preferSwitch = grammar.variables.get(VarName.CodePreferSwitch) == "true";
+
+    if (grammar.variables.get(VarName.Language) == "c++")
     {
         import std.string : toUpper;
-        immutable string guard = so.name.length > 0 ? so.name.toUpper : "PARSER";
+        immutable string guard = cppClass.length ? cppClass.toUpper : "PARSER";
         immutable dstring[dstring] basemap = [  "..": "ellipsis",
                                                 ".": "period",
                                                 "|": "pipe",
@@ -553,7 +551,7 @@ Fragment getFragment(Grammar grammar, const ref SourceOptions so)
                                             ];
         immutable auto map = basemap.byPair.chain(externMap.byPair).assocArray;
         Fragment res = { indentWidth: 2,
-                         useSwitch: so.useSwitch,
+                         preferSwitch: preferSwitch,
                          tokenNamePrefix: "tok::",
                          tokenKind: "Tok.getKind()",
                          tokenSingleCompare: "Tok.is",
@@ -565,8 +563,8 @@ Fragment getFragment(Grammar grammar, const ref SourceOptions so)
                          advanceFunc: "advance",
                          consumeFunc: "consume",
                          expectFunc: "expect",
-                         classNamePrefix: so.name.length ?  so.name ~ "::" : "",
-                         funcNamePrefix: "parse",
+                         classNamePrefix: cppClass.length ?  cppClass ~ "::" : "",
+                         funcNamePrefix: funcNamePrefix.length ? funcNamePrefix : "parse",
                          errorLabel: "_error",
                          guardDeclaration: guard ~ "_DECLARATION",
                          guardDefinition: guard ~ "_DEFINITION",
@@ -609,7 +607,7 @@ Fragment getFragment(Grammar grammar, const ref SourceOptions so)
                                             ];
         immutable auto map = basemap.byPair.chain(externMap.byPair).assocArray;
         Fragment res = { indentWidth: 4,
-                         useSwitch: so.useSwitch,
+                         preferSwitch: preferSwitch,
                          tokenNamePrefix: "TokenKind.",
                          tokenKind: "tok.kind",
                          tokenSingleCompare: "tok.kind",
@@ -622,7 +620,7 @@ Fragment getFragment(Grammar grammar, const ref SourceOptions so)
                          consumeFunc: "consume",
                          expectFunc: "expect",
                          classNamePrefix: "",
-                         funcNamePrefix: "parse",
+                         funcNamePrefix: funcNamePrefix.length ? funcNamePrefix : "parse",
                          errorLabel: "_error",
                          guardDeclaration: "",
                          guardDefinition: "",
