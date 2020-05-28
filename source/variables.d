@@ -51,7 +51,6 @@ struct VariableStore
         }
         if (kind != definedVars[idx].kind)
         {
-            writefln("Found Kind: %s", definedVars[idx].kind);
             msg = "Wrong variable type";
             return true;
         }
